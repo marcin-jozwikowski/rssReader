@@ -32,10 +32,11 @@ func getXML(url string) ([]byte, error) {
 	return data, nil
 }
 
-func GetRSSFeed(url string) Rss {
+func GetRSSFeed(categoryName string) Rss {
+	url := fmt.Sprintf("https://scnlog.me/%v/feed/", categoryName)
 	xmlBytes, err := getXML(url)
 	if err != nil {
-		log.Printf("Failed to get XML: %v", err)
+		log.Printf("Failed to get XML at %v: %v", url, err)
 	}
 
 	var feed Rss
@@ -46,6 +47,20 @@ func GetRSSFeed(url string) Rss {
 	}
 
 	return feed
+}
+
+func (rss *Rss) Filter(values []string) []Item {
+	var result []Item
+	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
+		for testValueID := 0; testValueID < len(values); testValueID++ {
+			testItem := rss.Channel.Items[itemID]
+			if testItem.Matches(values[testValueID]) {
+				result = append(result, testItem)
+			}
+		}
+	}
+
+	return result
 }
 
 
