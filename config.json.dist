@@ -1,0 +1,14 @@
+{
+  "settings": [
+    {
+      "key": "tv-shows/sdtv",
+      "values": [""]
+    }
+  ],
+  "cached": [
+    {
+      "key": "tv-shows/sdtv-latest",
+      "values": [""]
+    }
+  ]
+}
