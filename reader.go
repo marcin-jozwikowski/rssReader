@@ -13,9 +13,11 @@ func main() {
 		return
 	}
 	for settingID := 0; settingID < len(config.Settings); settingID++ {
-		var feedRss = feed.GetRSSFeed("https://scnlog.me/" + config.Settings[settingID].Key + "/feed/")
-		for i := 0; i < len(feedRss.Channel.Items); i++ {
-			fmt.Println(feedRss.Channel.Items[i].Identify())
+		setting := config.Settings[settingID]
+		allFeed := feed.GetRSSFeed(setting.Key)
+		matching := allFeed.Filter(setting.Values)
+		for matchID := 0; matchID < len(matching); matchID++ {
+			fmt.Println(matching[matchID].Identify())
 		}
 	}
 }

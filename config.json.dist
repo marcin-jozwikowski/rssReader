@@ -1,14 +1,9 @@
 {
   "settings": [
     {
-      "key": "tv-shows/sdtv",
-      "values": [""]
+      "key": "tv-shows",
+      "values": ["ALF", "That.70s.Show"]
     }
   ],
-  "cached": [
-    {
-      "key": "tv-shows/sdtv-latest",
-      "values": [""]
-    }
-  ]
+  "cached": []
 }
