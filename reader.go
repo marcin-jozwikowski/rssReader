@@ -3,11 +3,14 @@ package main
 import (
 	"configuration"
 	"feed"
+	"flag"
 	"fmt"
 )
 
 func main() {
-	var config, err = configuration.ReadFromFile("config.json")
+	configFileName := flag.String("config", "config.json", "Config file location")
+
+	config, err := configuration.ReadFromFile(*configFileName)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -19,5 +22,10 @@ func main() {
 		for matchID := 0; matchID < len(matching); matchID++ {
 			fmt.Println(matching[matchID].Identify())
 		}
+	}
+	err = config.WriteToFile(*configFileName)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
 	}
 }
