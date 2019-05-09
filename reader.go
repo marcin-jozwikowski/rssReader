@@ -9,12 +9,14 @@ import (
 
 func main() {
 	configFileName := flag.String("config", "config.json", "Config file location")
+	flag.Parse()
 
 	config, err := configuration.ReadFromFile(*configFileName)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+
 	for settingID := 0; settingID < len(config.Settings); settingID++ {
 		setting := config.Settings[settingID]
 		allFeed := feed.GetRSSFeed(setting.Key)
@@ -23,6 +25,7 @@ func main() {
 			fmt.Println(matching[matchID].Identify())
 		}
 	}
+
 	err = config.WriteToFile(*configFileName)
 	if err != nil {
 		fmt.Println(err.Error())
