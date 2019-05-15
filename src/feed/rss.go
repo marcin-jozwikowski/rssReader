@@ -52,8 +52,8 @@ func GetRSSFeed(categoryName string) Rss {
 func (rss *Rss) Filter(values []string) []Item {
 	var result []Item
 	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
+		testItem := rss.Channel.Items[itemID]
 		for testValueID := 0; testValueID < len(values); testValueID++ {
-			testItem := rss.Channel.Items[itemID]
 			if testItem.Matches(values[testValueID]) {
 				result = append(result, testItem)
 			}
