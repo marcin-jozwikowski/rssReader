@@ -2,6 +2,8 @@ package feed
 
 import (
 	"encoding/xml"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -17,4 +19,10 @@ func (item *Item) Identify() string {
 
 func (item *Item) Matches(name string) bool {
 	return strings.Contains(item.Title, name)
+}
+
+func (item *Item) GetID() (int, error) {
+	re := regexp.MustCompile(`(\d+)`)
+	numberPart := re.FindStringSubmatch(item.Guid)
+	return strconv.Atoi(numberPart[0])
 }

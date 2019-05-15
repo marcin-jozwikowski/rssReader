@@ -5,6 +5,7 @@ import (
 	"feed"
 	"flag"
 	"fmt"
+	"strconv"
 )
 
 const configType_main = "main"
@@ -28,12 +29,18 @@ func main() {
 	}
 
 	for channelName, filterValues := range config {
+		var channelMaxID int
+		if cache[channelName] != nil {
+			channelMaxID, _ = strconv.Atoi(cache[channelName][0])
+		} else {
+			channelMaxID = 0
+		}
 		allFeed := feed.GetRSSFeed(channelName)
-		matching := allFeed.Filter(filterValues)
+		matching, channelMaxID := allFeed.Filter(filterValues, channelMaxID)
 		for matchID := 0; matchID < len(matching); matchID++ {
 			fmt.Println(matching[matchID].Identify())
 		}
-		cache[channelName] = []string{"0"}
+		cache[channelName] = []string{strconv.Itoa(channelMaxID)}
 	}
 
 	_ = cache.WriteToFile(*cacheFileName)
