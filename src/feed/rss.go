@@ -49,18 +49,25 @@ func GetRSSFeed(categoryName string) Rss {
 	return feed
 }
 
-func (rss *Rss) Filter(values []string) []Item {
+func (rss *Rss) Filter(values []string, maxID int) ([]Item, int) {
 	var result []Item
+	newMaxID := maxID
 	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
 		testItem := rss.Channel.Items[itemID]
-		for testValueID := 0; testValueID < len(values); testValueID++ {
-			if testItem.Matches(values[testValueID]) {
-				result = append(result, testItem)
+		testItemID, _ := testItem.GetID()
+		if maxID < testItemID {
+			for testValueID := 0; testValueID < len(values); testValueID++ {
+				if testItem.Matches(values[testValueID]) {
+					result = append(result, testItem)
+				}
 			}
+			if testItemID > newMaxID {
+				newMaxID = testItemID
+			}
+		} else {
+			break
 		}
 	}
 
-	return result
+	return result, newMaxID
 }
-
-
