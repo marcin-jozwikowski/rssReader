@@ -25,10 +25,4 @@ func main() {
 			fmt.Println(matching[matchID].Identify())
 		}
 	}
-
-	err = config.WriteToFile(*configFileName)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
 }
