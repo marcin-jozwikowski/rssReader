@@ -13,6 +13,7 @@ const configType_cache = "cache"
 func main() {
 	configFileName := flag.String("config", "config.json", "Config file location")
 	cacheFileName := flag.String("cacheFile", "cache.json", "Cache file location")
+	runEditor := flag.Bool("runConfig", false, "Run configuration editor")
 	flag.Parse()
 
 	config, configErr := configuration.ReadFromFile(*configFileName, getDefaultConfig(configType_main))
@@ -25,6 +26,11 @@ func main() {
 			fmt.Println(cacheErr.Error())
 		}
 		return
+	}
+
+	if *runEditor {
+		config.Edit()
+		_ = config.WriteToFile(*configFileName)
 	}
 
 	cache = feed.Read(config, cache)
