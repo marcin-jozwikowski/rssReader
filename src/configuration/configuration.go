@@ -9,7 +9,7 @@ import (
 
 type Config map[string][]string
 
-func ReadFromFile(filename string, defaultConfig Config) (Config, error) {
+func ReadFromFile(filename string) (Config, error) {
 	if _, err := os.Stat(filename); err == nil {
 		config, readErr := fromFile(filename)
 		if nil != readErr {
@@ -17,7 +17,7 @@ func ReadFromFile(filename string, defaultConfig Config) (Config, error) {
 		}
 		return config, nil
 	} else if os.IsNotExist(err) {
-		fileWriteErr := defaultConfig.WriteToFile(filename)
+		fileWriteErr := Config{}.WriteToFile(filename)
 		if fileWriteErr != nil {
 			return Config{}, fileWriteErr
 		}
