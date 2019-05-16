@@ -5,7 +5,6 @@ import (
 	"feed"
 	"flag"
 	"fmt"
-	"strconv"
 )
 
 const configType_main = "main"
@@ -16,33 +15,19 @@ func main() {
 	cacheFileName := flag.String("cacheFile", "cache.json", "Cache file location")
 	flag.Parse()
 
-	config, err := configuration.ReadFromFile(*configFileName, getDefaultConfig(configType_main))
-	if err != nil {
-		fmt.Println(err.Error())
+	config, configErr := configuration.ReadFromFile(*configFileName, getDefaultConfig(configType_main))
+	cache, cacheErr := configuration.ReadFromFile(*cacheFileName, getDefaultConfig(configType_cache))
+	if configErr != nil || cacheErr != nil {
+		if configErr != nil {
+			fmt.Println(configErr.Error())
+		}
+		if cacheErr != nil {
+			fmt.Println(cacheErr.Error())
+		}
 		return
 	}
 
-	cache, err := configuration.ReadFromFile(*cacheFileName, getDefaultConfig(configType_cache))
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	for channelName, filterValues := range config {
-		var channelMaxID int
-		if cache[channelName] != nil {
-			channelMaxID, _ = strconv.Atoi(cache[channelName][0])
-		} else {
-			channelMaxID = 0
-		}
-		allFeed := feed.GetRSSFeed(channelName)
-		matching, channelMaxID := allFeed.Filter(filterValues, channelMaxID)
-		for matchID := 0; matchID < len(matching); matchID++ {
-			fmt.Println(matching[matchID].Identify())
-		}
-		cache[channelName] = []string{strconv.Itoa(channelMaxID)}
-	}
-
+	cache = feed.Read(config, cache)
 	_ = cache.WriteToFile(*cacheFileName)
 }
 

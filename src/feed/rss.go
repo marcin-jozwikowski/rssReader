@@ -1,17 +1,39 @@
 package feed
 
 import (
+	"configuration"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Rss struct {
 	XMLName xml.Name `xml:"rss"`
 	Channel Channel  `xml:"channel"`
 }
+
+func Read(config configuration.Config, cache configuration.Config) configuration.Config  {
+	for channelName, filterValues := range config {
+		var channelMaxID int
+		if cache[channelName] != nil {
+			channelMaxID, _ = strconv.Atoi(cache[channelName][0])
+		} else {
+			channelMaxID = 0
+		}
+		allFeed := getRSSFeed(channelName)
+		matching, channelMaxID := allFeed.filter(filterValues, channelMaxID)
+		for matchID := 0; matchID < len(matching); matchID++ {
+			fmt.Println(matching[matchID].Identify())
+		}
+		cache[channelName] = []string{strconv.Itoa(channelMaxID)}
+	}
+
+	return cache
+}
+
 
 func getXML(url string) ([]byte, error) {
 	resp, err := http.Get(url)
@@ -32,7 +54,7 @@ func getXML(url string) ([]byte, error) {
 	return data, nil
 }
 
-func GetRSSFeed(categoryName string) Rss {
+func getRSSFeed(categoryName string) Rss {
 	url := fmt.Sprintf("https://scnlog.me/%v/feed/", categoryName)
 	xmlBytes, err := getXML(url)
 	if err != nil {
@@ -49,7 +71,7 @@ func GetRSSFeed(categoryName string) Rss {
 	return feed
 }
 
-func (rss *Rss) Filter(values []string, maxID int) ([]Item, int) {
+func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
 	var result []Item
 	newMaxID := maxID
 	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
