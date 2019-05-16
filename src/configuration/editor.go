@@ -4,11 +4,12 @@ import (
 	"cli"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 var configKeys []string
 
-func (config Config) Edit() Config {
+func (config Config) Edit() {
 	canRun := true
 	for {
 		canRun = config.keysEditAction()
@@ -16,22 +17,19 @@ func (config Config) Edit() Config {
 			break
 		}
 	}
-	return config
 }
 
 func (config Config) keysEditAction() bool {
-	cli.CallClear()
+	cli.ClearConsole()
 	config.printKeys()
 	fmt.Println("C: Create new")
 	fmt.Println("X: Exit")
-	readKey := cli.ReadString("")
+	readKey := strings.ToLower(cli.ReadString(""))
 	switch readKey {
-	case "X":
 	case "x":
 		return false
 		break
 
-	case "C":
 	case "c":
 		config.createNewKeyAction()
 		break
@@ -64,15 +62,49 @@ func (config Config) parseKeys() []string {
 	return configKeys
 }
 
-func (config Config) createNewKeyAction() {
-	fmt.Println("Create new")
-	r := cli.ReadString("?")
-	fmt.Println(r)
+func resetKeys() {
+	configKeys = nil
 }
 
+func (config Config) createNewKeyAction() {
+	fmt.Println("Create new")
+	r := cli.ReadString("Name new key:")
+	config[r] = []string{}
+	resetKeys()
+}
 
 func (config Config) editKeyValuesAction(keyId int) {
-	fmt.Println("Edit Key " + strconv.Itoa(keyId-1))
-	r := cli.ReadString("?")
-	fmt.Println(r)
+	for {
+		cli.ClearConsole()
+		fmt.Println("Edit Key " + configKeys[keyId-1])
+		for key, value := range config[configKeys[keyId-1]] {
+			fmt.Println(strconv.Itoa(key) + ": " + value)
+		}
+		fmt.Println("D: Delete whole key")
+		fmt.Println("A: Add value")
+		fmt.Println("X: Go up")
+		r := strings.ToLower(cli.ReadString("Name a value to remove"))
+		switch r {
+		case "x":
+			return
+
+		case "d":
+			delete(config, configKeys[keyId-1])
+			resetKeys()
+			return
+
+		case "a":
+			cli.ClearConsole()
+			newValue := cli.ReadString("Name new value for " + configKeys[keyId-1])
+			config[configKeys[keyId-1]] = append(config[configKeys[keyId-1]], newValue)
+			break
+
+		default:
+			key, _ := strconv.Atoi(r)
+			if len(config[configKeys[keyId-1]]) > key {
+				config[configKeys[keyId-1]] = append(config[configKeys[keyId-1]][:key], config[configKeys[keyId-1]][key+1:]...)
+			}
+		}
+	}
+
 }

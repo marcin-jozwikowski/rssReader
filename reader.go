@@ -31,6 +31,7 @@ func main() {
 	if *runEditor {
 		config.Edit()
 		_ = config.WriteToFile(*configFileName)
+		return
 	}
 
 	cache = feed.Read(config, cache)
