@@ -15,20 +15,19 @@ func main() {
 	cacheFileName := flag.String("cacheFile", "cache.json", "Cache file location")
 	flag.Parse()
 
-	config, err := configuration.ReadFromFile(*configFileName, getDefaultConfig(configType_main))
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	cache, err := configuration.ReadFromFile(*cacheFileName, getDefaultConfig(configType_cache))
-	if err != nil {
-		fmt.Println(err.Error())
+	config, configErr := configuration.ReadFromFile(*configFileName, getDefaultConfig(configType_main))
+	cache, cacheErr := configuration.ReadFromFile(*cacheFileName, getDefaultConfig(configType_cache))
+	if configErr != nil || cacheErr != nil {
+		if configErr != nil {
+			fmt.Println(configErr.Error())
+		}
+		if cacheErr != nil {
+			fmt.Println(cacheErr.Error())
+		}
 		return
 	}
 
 	cache = feed.Read(config, cache)
-
 	_ = cache.WriteToFile(*cacheFileName)
 }
 
