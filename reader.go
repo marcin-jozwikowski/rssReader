@@ -8,9 +8,9 @@ import (
 )
 
 func main() {
-	configFileName := flag.String("config", "config.json", "Config file location")
+	configFileName := flag.String("configFile", "config.json", "Config file location")
 	cacheFileName := flag.String("cacheFile", "cache.json", "Cache file location")
-	runEditor := flag.Bool("runConfig", false, "Run configuration editor")
+	runEditor := flag.Bool("editConfig", false, "Run configuration editor")
 	flag.Parse()
 
 	config, configErr := configuration.ReadFromFile(*configFileName)
