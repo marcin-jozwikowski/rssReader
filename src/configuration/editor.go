@@ -22,8 +22,8 @@ func (config Config) Edit() {
 func (config Config) keysEditAction() bool {
 	cli.ClearConsole()
 	config.printKeys()
-	fmt.Println("C: Create new")
-	fmt.Println("X: Exit")
+	fmt.Println("  C: Create new")
+	fmt.Println("  X: Exit")
 	readKey := strings.ToLower(cli.ReadString(""))
 	switch readKey {
 	case "x":
@@ -44,16 +44,19 @@ func (config Config) keysEditAction() bool {
 }
 
 func (config Config) printKeys() {
+	fmt.Println("*** Keys available ***")
 	for id, key := range config.parseKeys() {
-		fmt.Println(strconv.Itoa(id+1) + ": " + key)
+		fmt.Printf("  %v: %v", strconv.Itoa(id+1), key)
+		fmt.Println()
 	}
+	fmt.Println()
 }
 
 func (config Config) parseKeys() []string {
 	if configKeys == nil {
 		id := 0
 		configKeys = make([]string, len(config))
-		for key, _ := range config {
+		for key := range config {
 			configKeys[id] = key
 			id++
 		}
@@ -67,42 +70,45 @@ func resetKeys() {
 }
 
 func (config Config) createNewKeyAction() {
-	fmt.Println("Create new")
+	fmt.Println("*** Create new ***")
 	r := cli.ReadString("Name new key:")
 	config[r] = []string{}
 	resetKeys()
 }
 
 func (config Config) editKeyValuesAction(keyId int) {
+	mainKey := keyId - 1
 	for {
 		cli.ClearConsole()
-		fmt.Println("Edit Key " + configKeys[keyId-1])
-		for key, value := range config[configKeys[keyId-1]] {
-			fmt.Println(strconv.Itoa(key) + ": " + value)
+		fmt.Println("*** Edit Key " + configKeys[mainKey])
+		for key, value := range config[configKeys[mainKey]] {
+			fmt.Printf("  %v: %v", strconv.Itoa(key), value)
+			fmt.Println()
 		}
-		fmt.Println("D: Delete whole key")
-		fmt.Println("A: Add value")
-		fmt.Println("X: Go up")
-		r := strings.ToLower(cli.ReadString("Name a value to remove"))
+		fmt.Println()
+		fmt.Println("  D: Delete whole key")
+		fmt.Println("  A: Add value")
+		fmt.Println("  X: Go up")
+		fmt.Println("     Name a value to remove")
+		r := strings.ToLower(cli.ReadString(""))
 		switch r {
 		case "x":
 			return
 
 		case "d":
-			delete(config, configKeys[keyId-1])
+			delete(config, configKeys[mainKey])
 			resetKeys()
 			return
 
 		case "a":
-			cli.ClearConsole()
-			newValue := cli.ReadString("Name new value for " + configKeys[keyId-1])
-			config[configKeys[keyId-1]] = append(config[configKeys[keyId-1]], newValue)
+			newValue := cli.ReadString("*** Name new value for " + configKeys[mainKey])
+			config[configKeys[mainKey]] = append(config[configKeys[mainKey]], newValue)
 			break
 
 		default:
 			key, _ := strconv.Atoi(r)
-			if len(config[configKeys[keyId-1]]) > key {
-				config[configKeys[keyId-1]] = append(config[configKeys[keyId-1]][:key], config[configKeys[keyId-1]][key+1:]...)
+			if len(config[configKeys[mainKey]]) > key {
+				config[configKeys[mainKey]] = append(config[configKeys[mainKey]][:key], config[configKeys[mainKey]][key+1:]...)
 			}
 		}
 	}
