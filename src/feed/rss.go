@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"cli"
 	"configuration"
 	"encoding/xml"
 	"fmt"
@@ -18,7 +19,7 @@ type Rss struct {
 
 func Read(config configuration.Config, cache configuration.Config) configuration.Config {
 	for channelName, filterValues := range config {
-		if configuration.IsVerboseDebug() {
+		if cli.IsVerboseDebug() {
 			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelName))
 		}
 		var channelMaxID int
@@ -27,16 +28,16 @@ func Read(config configuration.Config, cache configuration.Config) configuration
 		} else {
 			channelMaxID = 0
 		}
-		if configuration.IsVerboseDebug() {
+		if cli.IsVerboseDebug() {
 			fmt.Println(fmt.Sprintf("Last checked item ID: %d", channelMaxID))
 		}
 		allFeed := getRSSFeed(channelName)
 		matching, channelMaxID := allFeed.filter(filterValues, channelMaxID)
-		if configuration.IsVerboseInfo() {
+		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelName))
 		}
 		for matchID := 0; matchID < len(matching); matchID++ {
-			if configuration.IsVerbose() {
+			if cli.IsVerbose() {
 				fmt.Println(matching[matchID].Identify())
 			}
 		}
@@ -47,7 +48,7 @@ func Read(config configuration.Config, cache configuration.Config) configuration
 }
 
 func getXML(url string) ([]byte, error) {
-	if configuration.IsVerboseDebug() {
+	if cli.IsVerboseDebug() {
 		fmt.Println("Reading URL " + url)
 	}
 	resp, err := http.Get(url)
@@ -88,7 +89,7 @@ func getRSSFeed(categoryName string) Rss {
 func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
 	var result []Item
 	newMaxID := maxID
-	if configuration.IsVerboseDebug() {
+	if cli.IsVerboseDebug() {
 		fmt.Println("Checking against: " + strings.Join(values, " | "))
 	}
 	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
@@ -97,13 +98,13 @@ func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
 		testItemID, _ := testItem.GetID()
 		if maxID < testItemID {
 			// if current itemID is greater than last checked
-			if configuration.IsVerboseDebug() {
+			if cli.IsVerboseDebug() {
 				fmt.Println("Checking item: " + testItem.Title)
 			}
 			for testValueID := 0; testValueID < len(values); testValueID++ {
 			// test item against all keywords
 				if testItem.Matches(values[testValueID]) {
-					if configuration.IsVerboseInfo() {
+					if cli.IsVerboseInfo() {
 						fmt.Println(fmt.Sprintf("Item %s mathed by %s", testItem.Title, values[testValueID]))
 					}
 					result = append(result, testItem)
@@ -114,7 +115,7 @@ func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
 				newMaxID = testItemID
 			}
 		} else {
-			if configuration.IsVerboseDebug() {
+			if cli.IsVerboseDebug() {
 				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, maxID))
 			}
 			break
