@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -70,14 +71,14 @@ func getRSSFeed(categoryName string) Rss {
 	url := fmt.Sprintf("https://scnlog.me/%v/feed/", categoryName)
 	xmlBytes, err := getXML(url)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to get XML at %v: %v", url, err.Error()))
+		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", url, err.Error()))
 	}
 
 	var feed Rss
 	err2 := xml.Unmarshal(xmlBytes, &feed)
 
 	if err2 != nil {
-		panic(fmt.Sprintf("Error parsing: %v", err2))
+		log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
 	}
 
 	return feed

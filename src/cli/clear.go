@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -27,6 +28,6 @@ func ClearConsole() {
 	if ok { //if we defined a clear func for that platform:
 		value() //we execute it
 	} else { //unsupported platform
-		panic("Your platform is unsupported! I can't clear terminal screen :(")
+		log.Fatalln("Your platform is unsupported! I can't clear terminal screen :(")
 	}
 }
