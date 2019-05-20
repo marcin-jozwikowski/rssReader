@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cli"
 	"configuration"
 	"feed"
 	"flag"
@@ -11,20 +12,20 @@ func main() {
 	configFileName := flag.String("configFile", "config.json", "Config file location")
 	cacheFileName := flag.String("cacheFile", "cache.json", "Cache file location")
 	runEditor := flag.Bool("editConfig", false, "Run configuration editor")
-	isVerbose := flag.Int("verbose", configuration.DefaultVerbose, "Verbose level: 0-None ... 3-All")
+	isVerbose := flag.Int("verbose", cli.DefaultVerbose, "Verbose level: 0-None ... 3-All")
 	flag.Parse()
 
-	configuration.SetVerbose(*isVerbose)
+	cli.SetVerbose(*isVerbose)
 	config, configErr := configuration.ReadFromFile(*configFileName)
 	cache, cacheErr := configuration.ReadFromFile(*cacheFileName)
 	if configErr != nil {
-		if configuration.IsVerbose() {
+		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())
 		}
 		*runEditor = true // enforce config editor
 	}
 	if cacheErr != nil {
-		if configuration.IsVerbose() {
+		if cli.IsVerbose() {
 			fmt.Println(cacheErr.Error())
 		}
 	}
