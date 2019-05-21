@@ -1,42 +1,41 @@
 package main
 
 import (
+	"cli"
 	"configuration"
 	"feed"
 	"flag"
 	"fmt"
 )
 
-const configType_main = "main"
-const configType_cache = "cache"
-
 func main() {
-	configFileName := flag.String("config", "config.json", "Config file location")
+	configFileName := flag.String("configFile", "config.json", "Config file location")
 	cacheFileName := flag.String("cacheFile", "cache.json", "Cache file location")
+	runEditor := flag.Bool("editConfig", false, "Run configuration editor")
+	isVerbose := flag.Int("verbose", cli.DefaultVerbose, "Verbose level: 0-None ... 3-All")
 	flag.Parse()
 
-	config, configErr := configuration.ReadFromFile(*configFileName, getDefaultConfig(configType_main))
-	cache, cacheErr := configuration.ReadFromFile(*cacheFileName, getDefaultConfig(configType_cache))
-	if configErr != nil || cacheErr != nil {
-		if configErr != nil {
+	cli.SetVerbose(*isVerbose)
+	config, configErr := configuration.ReadFromFile(*configFileName)
+	cache, cacheErr := configuration.ReadFromFile(*cacheFileName)
+	if configErr != nil {
+		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())
 		}
-		if cacheErr != nil {
+		*runEditor = true // enforce config editor
+	}
+	if cacheErr != nil {
+		if cli.IsVerbose() {
 			fmt.Println(cacheErr.Error())
 		}
+	}
+
+	if *runEditor {
+		config.Edit()
+		_ = config.WriteToFile(*configFileName)
 		return
 	}
 
 	cache = feed.Read(config, cache)
 	_ = cache.WriteToFile(*cacheFileName)
-}
-
-func getDefaultConfig(configType string) configuration.Config {
-	var conf = make(configuration.Config,1)
-	switch configType {
-	case configType_main:
-		conf["tv-shows"] = []string{"ALF", "That 70's Show"}
-		break
-	}
-	return conf
 }

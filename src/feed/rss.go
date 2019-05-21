@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"cli"
 	"configuration"
 	"encoding/xml"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Rss struct {
@@ -15,18 +17,29 @@ type Rss struct {
 	Channel Channel  `xml:"channel"`
 }
 
-func Read(config configuration.Config, cache configuration.Config) configuration.Config  {
+func Read(config configuration.Config, cache configuration.Config) configuration.Config {
 	for channelName, filterValues := range config {
+		if cli.IsVerboseDebug() {
+			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelName))
+		}
 		var channelMaxID int
 		if cache[channelName] != nil {
 			channelMaxID, _ = strconv.Atoi(cache[channelName][0])
 		} else {
 			channelMaxID = 0
 		}
+		if cli.IsVerboseDebug() {
+			fmt.Println(fmt.Sprintf("Last checked item ID: %d", channelMaxID))
+		}
 		allFeed := getRSSFeed(channelName)
 		matching, channelMaxID := allFeed.filter(filterValues, channelMaxID)
+		if cli.IsVerboseInfo() {
+			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelName))
+		}
 		for matchID := 0; matchID < len(matching); matchID++ {
-			fmt.Println(matching[matchID].Identify())
+			if cli.IsVerbose() {
+				fmt.Println(matching[matchID].Identify())
+			}
 		}
 		cache[channelName] = []string{strconv.Itoa(channelMaxID)}
 	}
@@ -34,11 +47,13 @@ func Read(config configuration.Config, cache configuration.Config) configuration
 	return cache
 }
 
-
 func getXML(url string) ([]byte, error) {
+	if cli.IsVerboseDebug() {
+		fmt.Println("Reading URL " + url)
+	}
 	resp, err := http.Get(url)
 	if err != nil {
-		return []byte{}, fmt.Errorf("GET error: %v", err)
+		return []byte{}, fmt.Errorf("GET error: %v", err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -48,7 +63,7 @@ func getXML(url string) ([]byte, error) {
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return []byte{}, fmt.Errorf("Read body: %v", err)
+		return []byte{}, fmt.Errorf("Read body: %v", err.Error())
 	}
 
 	return data, nil
@@ -58,14 +73,14 @@ func getRSSFeed(categoryName string) Rss {
 	url := fmt.Sprintf("https://scnlog.me/%v/feed/", categoryName)
 	xmlBytes, err := getXML(url)
 	if err != nil {
-		log.Printf("Failed to get XML at %v: %v", url, err)
+		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", url, err.Error()))
 	}
 
 	var feed Rss
 	err2 := xml.Unmarshal(xmlBytes, &feed)
 
 	if err2 != nil {
-		log.Printf("Error parsing: %v", err2)
+		log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
 	}
 
 	return feed
@@ -74,19 +89,35 @@ func getRSSFeed(categoryName string) Rss {
 func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
 	var result []Item
 	newMaxID := maxID
+	if cli.IsVerboseDebug() {
+		fmt.Println("Checking against: " + strings.Join(values, " | "))
+	}
 	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
+		// for each found RSS item:
 		testItem := rss.Channel.Items[itemID]
 		testItemID, _ := testItem.GetID()
 		if maxID < testItemID {
+			// if current itemID is greater than last checked
+			if cli.IsVerboseDebug() {
+				fmt.Println("Checking item: " + testItem.Title)
+			}
 			for testValueID := 0; testValueID < len(values); testValueID++ {
+			// test item against all keywords
 				if testItem.Matches(values[testValueID]) {
+					if cli.IsVerboseInfo() {
+						fmt.Println(fmt.Sprintf("Item %s mathed by %s", testItem.Title, values[testValueID]))
+					}
 					result = append(result, testItem)
+					break
 				}
 			}
 			if testItemID > newMaxID {
 				newMaxID = testItemID
 			}
 		} else {
+			if cli.IsVerboseDebug() {
+				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, maxID))
+			}
 			break
 		}
 	}
