@@ -31,20 +31,20 @@ func (config Config) keysEditAction() bool {
 		break
 
 	case "c":
-		config.createNewKeyAction()
+		config.createNewURLAction()
 		break
 
 	default:
 		keyId, _ := strconv.Atoi(readKey)
 		if keyId > 0 && keyId <= len(configKeys) {
-			config.editKeyValuesAction(keyId)
+			config.editURLValuesAction(keyId)
 		}
 	}
 	return true
 }
 
 func (config Config) printKeys() {
-	fmt.Println("*** Keys available ***")
+	fmt.Println("*** Entries available ***")
 	for id, key := range config.parseKeys() {
 		fmt.Printf("  %v: %v", strconv.Itoa(id+1), key)
 		fmt.Println()
@@ -69,24 +69,24 @@ func resetKeys() {
 	configKeys = nil
 }
 
-func (config Config) createNewKeyAction() {
+func (config Config) createNewURLAction() {
 	fmt.Println("*** Create new ***")
-	r := cli.ReadString("Name new key:")
+	r := cli.ReadString("Name new URL:")
 	config[r] = []string{}
 	resetKeys()
 }
 
-func (config Config) editKeyValuesAction(keyId int) {
+func (config Config) editURLValuesAction(keyId int) {
 	mainKey := keyId - 1
 	for {
 		cli.ClearConsole()
-		fmt.Println("*** Edit Key " + configKeys[mainKey])
+		fmt.Println("*** Edit URL " + configKeys[mainKey])
 		for key, value := range config[configKeys[mainKey]] {
 			fmt.Printf("  %v: %v", strconv.Itoa(key), value)
 			fmt.Println()
 		}
 		fmt.Println()
-		fmt.Println("  D: Delete whole key")
+		fmt.Println("  D: Delete whole url")
 		fmt.Println("  A: Add value")
 		fmt.Println("  X: Go up")
 		fmt.Println("     Name a value to remove")
