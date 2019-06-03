@@ -5,9 +5,7 @@ import (
 	"configuration"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -51,22 +49,9 @@ func getXML(url string) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Reading URL " + url)
 	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return []byte{}, fmt.Errorf("GET error: %v", err.Error())
-	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return []byte{}, fmt.Errorf("Status error: %v", resp.StatusCode)
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return []byte{}, fmt.Errorf("Read body: %v", err.Error())
-	}
-
-	return data, nil
+	reader := GetRssReader(*cli.DownloadCommand)
+	return reader.GetXML(url)
 }
 
 func getRSSFeed(channelUrl string) Rss {
