@@ -3,6 +3,7 @@ package feed
 import (
 	"cli"
 	"fmt"
+	"gopkg.in/headzoo/surf.v1"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 
 const readerTypeNative = "native"
 const readerTypePhantomjs = "phantomJS"
+const readerTypeSurf = "surf"
 
 type RssReader interface {
 	GetXML(string) ([]byte, error)
@@ -19,7 +21,10 @@ type RssReader interface {
 type NativeRssReader struct {
 }
 
-func (_ NativeRssReader) GetXML(url string) ([]byte, error) {
+func (NativeRssReader) GetXML(url string) ([]byte, error) {
+	if cli.IsVerboseDebug() {
+		fmt.Println("Running built-in downloader")
+	}
 	resp, err := http.Get(url)
 	if err != nil {
 		return []byte{}, fmt.Errorf("GET error: %v", err.Error())
@@ -41,7 +46,7 @@ func (_ NativeRssReader) GetXML(url string) ([]byte, error) {
 type RssReaderPhantomJS struct {
 }
 
-func (extRR RssReaderPhantomJS) GetXML(url string) ([]byte, error) {
+func (RssReaderPhantomJS) GetXML(url string) ([]byte, error) {
 	params := *cli.DownloadParams
 	if strings.Contains(params, "%s") {
 		params = fmt.Sprintf(params, url)
@@ -61,17 +66,40 @@ func (extRR RssReaderPhantomJS) GetXML(url string) ([]byte, error) {
 	return exec.Command("phantomjs", params).Output()
 }
 
+type RssReaderSurf struct {
+}
+
+func (RssReaderSurf) GetXML(url string) ([]byte, error) {
+	if cli.IsVerboseDebug() {
+		fmt.Println("Running SURF downloader")
+	}
+	bow := surf.NewBrowser()
+	err := bow.Open(url)
+	if err != nil {
+		panic(err)
+	}
+
+	bod := bow.Body()
+
+	return []byte(bod), nil
+}
+
 func GetRssReader(externalCommand string) RssReader {
 	var reader RssReader
 
 	switch externalCommand {
+	case readerTypeSurf:
+		reader = RssReaderSurf{}
+		break
+
 	case readerTypePhantomjs:
 		reader = RssReaderPhantomJS{}
+		break
 
 	case readerTypeNative:
 	default:
 		reader = NativeRssReader{}
-
+		break
 	}
 
 	return reader
