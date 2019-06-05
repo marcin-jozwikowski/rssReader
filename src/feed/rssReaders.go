@@ -1,6 +1,8 @@
 package feed
 
 import (
+	"bufio"
+	"bytes"
 	"cli"
 	"fmt"
 	"gopkg.in/headzoo/surf.v1"
@@ -76,12 +78,14 @@ func (RssReaderSurf) GetXML(url string) ([]byte, error) {
 	bow := surf.NewBrowser()
 	err := bow.Open(url)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	bod := bow.Body()
+	var b bytes.Buffer
+	foo := bufio.NewWriter(&b)
+	_, _ = bow.Download(foo)
 
-	return []byte(bod), nil
+	return b.Bytes(), nil
 }
 
 func GetRssReader(externalCommand string) RssReader {
