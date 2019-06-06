@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"cli"
 	"fmt"
+	"github.com/headzoo/surf/errors"
 	"gopkg.in/headzoo/surf.v1"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 const readerTypeNative = "native"
 const readerTypePhantomjs = "phantomJS"
 const readerTypeSurf = "surf"
+const readerTypeWget = "wget"
 
 type RssReader interface {
 	GetXML(string) ([]byte, error)
@@ -49,23 +51,35 @@ type RssReaderPhantomJS struct {
 }
 
 func (RssReaderPhantomJS) GetXML(url string) ([]byte, error) {
-	params := *cli.DownloadParams
+	params := *cli.DownloaderParams
 	if strings.Contains(params, "%s") {
 		params = fmt.Sprintf(params, url)
-	}
-	if *cli.ProxyAddr != "" {
-		params = fmt.Sprintf("--proxy=%s ", *cli.ProxyAddr) + params
-		if *cli.ProxyType != "" {
-			params = fmt.Sprintf("--proxy-type=%s ", *cli.ProxyType) + params
-		}
-		if *cli.ProxyAuth != "" {
-			params = fmt.Sprintf("--proxy-auth=\"%s\" ", *cli.ProxyAuth) + params
-		}
 	}
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running PhantomJS with params: " + params)
 	}
 	return exec.Command("phantomjs", params).Output()
+}
+
+type RssReaderWget struct {
+}
+
+func (RssReaderWget) GetXML(url string) ([]byte, error) {
+	if cli.IsVerboseDebug() {
+		fmt.Println("Running custom downloader")
+	}
+	cmd := exec.Command(*cli.Downloader, *cli.DownloaderParams, url)
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return nil, errors.New(stderr.String())
+	}
+
+	return out.Bytes(), nil
 }
 
 type RssReaderSurf struct {
@@ -88,10 +102,10 @@ func (RssReaderSurf) GetXML(url string) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func GetRssReader(externalCommand string) RssReader {
+func GetRssReader(downloader string) RssReader {
 	var reader RssReader
 
-	switch externalCommand {
+	switch downloader {
 	case readerTypeSurf:
 		reader = RssReaderSurf{}
 		break
@@ -101,8 +115,11 @@ func GetRssReader(externalCommand string) RssReader {
 		break
 
 	case readerTypeNative:
-	default:
 		reader = NativeRssReader{}
+		break
+
+	case readerTypeWget:
+		reader = RssReaderWget{}
 		break
 	}
 

@@ -50,7 +50,7 @@ func getXML(url string) ([]byte, error) {
 		fmt.Println("Reading URL " + url)
 	}
 
-	reader := GetRssReader(*cli.DownloadCommand)
+	reader := GetRssReader(*cli.Downloader)
 	return reader.GetXML(url)
 }
 
