@@ -20,7 +20,7 @@ func (config Config) Edit() {
 }
 
 func (config Config) keysEditAction() bool {
-	cli.ClearConsole()
+	//cli.ClearConsole()
 	config.printKeys()
 	fmt.Println("  C: Create new")
 	fmt.Println("  X: Exit")
@@ -86,7 +86,8 @@ func (config Config) editURLValuesAction(keyId int) {
 			fmt.Println()
 		}
 		fmt.Println()
-		fmt.Println("  D: Delete whole url")
+		fmt.Println("  E: Edit URL itself")
+		fmt.Println("  D: Delete whole URL")
 		fmt.Println("  A: Add value")
 		fmt.Println("  X: Go up")
 		fmt.Println("     Name a value to remove")
@@ -104,6 +105,13 @@ func (config Config) editURLValuesAction(keyId int) {
 			newValue := cli.ReadString("*** Name new value for " + configKeys[mainKey])
 			config[configKeys[mainKey]] = append(config[configKeys[mainKey]], newValue)
 			break
+
+		case "e":
+			newUrl := cli.ReadString("New URL")
+			config[newUrl] = config[configKeys[mainKey]]
+			delete(config, configKeys[mainKey])
+			resetKeys()
+			return
 
 		default:
 			key, _ := strconv.Atoi(r)
