@@ -5,9 +5,7 @@ import (
 	"configuration"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -18,30 +16,30 @@ type Rss struct {
 }
 
 func Read(config configuration.Config, cache configuration.Config) configuration.Config {
-	for channelName, filterValues := range config {
+	for channelUrl, filterValues := range config {
 		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelName))
+			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelUrl))
 		}
 		var channelMaxID int
-		if cache[channelName] != nil {
-			channelMaxID, _ = strconv.Atoi(cache[channelName][0])
+		if cache[channelUrl] != nil {
+			channelMaxID, _ = strconv.Atoi(cache[channelUrl][0])
 		} else {
 			channelMaxID = 0
 		}
 		if cli.IsVerboseDebug() {
 			fmt.Println(fmt.Sprintf("Last checked item ID: %d", channelMaxID))
 		}
-		allFeed := getRSSFeed(channelName)
+		allFeed := getRSSFeed(channelUrl)
 		matching, channelMaxID := allFeed.filter(filterValues, channelMaxID)
 		if cli.IsVerboseInfo() {
-			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelName))
+			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelUrl))
 		}
 		for matchID := 0; matchID < len(matching); matchID++ {
 			if cli.IsVerbose() {
 				fmt.Println(matching[matchID].Identify())
 			}
 		}
-		cache[channelName] = []string{strconv.Itoa(channelMaxID)}
+		cache[channelUrl] = []string{strconv.Itoa(channelMaxID)}
 	}
 
 	return cache
@@ -51,29 +49,15 @@ func getXML(url string) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Reading URL " + url)
 	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return []byte{}, fmt.Errorf("GET error: %v", err.Error())
-	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return []byte{}, fmt.Errorf("Status error: %v", resp.StatusCode)
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return []byte{}, fmt.Errorf("Read body: %v", err.Error())
-	}
-
-	return data, nil
+	reader := GetRssReader(*cli.Downloader)
+	return reader.GetXML(url)
 }
 
-func getRSSFeed(categoryName string) Rss {
-	url := fmt.Sprintf("https://scnlog.me/%v/feed/", categoryName)
-	xmlBytes, err := getXML(url)
+func getRSSFeed(channelUrl string) Rss {
+	xmlBytes, err := getXML(channelUrl)
 	if err != nil {
-		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", url, err.Error()))
+		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
 	}
 
 	var feed Rss
