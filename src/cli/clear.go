@@ -25,7 +25,7 @@ func init() {
 
 func ClearConsole() {
 	value, ok := clear[runtime.GOOS] //runtime.GOOS -> linux, windows, darwin etc.
-	if ok { //if we defined a clear func for that platform:
+	if ok {                          //if we defined a clear func for that platform:
 		value() //we execute it
 	} else { //unsupported platform
 		log.Fatalln("Your platform is unsupported! I can't clear terminal screen :(")

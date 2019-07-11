@@ -1,11 +1,11 @@
 package feed
 
 import (
-	"cli"
-	"configuration"
 	"encoding/xml"
 	"fmt"
 	"log"
+	"rssReader/src/cli"
+	"rssReader/src/configuration"
 	"strconv"
 	"strings"
 )
@@ -86,7 +86,7 @@ func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
 				fmt.Println("Checking item: " + testItem.Title)
 			}
 			for testValueID := 0; testValueID < len(values); testValueID++ {
-			// test item against all keywords
+				// test item against all keywords
 				if testItem.Matches(values[testValueID]) {
 					if cli.IsVerboseInfo() {
 						fmt.Println(fmt.Sprintf("Item %s mathed by %s", testItem.Title, values[testValueID]))
