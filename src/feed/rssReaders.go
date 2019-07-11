@@ -3,13 +3,13 @@ package feed
 import (
 	"bufio"
 	"bytes"
-	"cli"
 	"fmt"
 	"github.com/headzoo/surf/errors"
 	"gopkg.in/headzoo/surf.v1"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+	"rssReader/src/cli"
 	"strings"
 )
 

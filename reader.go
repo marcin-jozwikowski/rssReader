@@ -1,10 +1,10 @@
 package main
 
 import (
-	"cli"
-	"configuration"
-	"feed"
 	"fmt"
+	"rssReader/src/cli"
+	"rssReader/src/configuration"
+	"rssReader/src/feed"
 )
 
 func main() {

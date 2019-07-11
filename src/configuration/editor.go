@@ -1,8 +1,8 @@
 package configuration
 
 import (
-	"cli"
 	"fmt"
+	"rssReader/src/cli"
 	"strconv"
 	"strings"
 )

@@ -1,6 +1,8 @@
 package cli
 
-import ("flag")
+import (
+	"flag"
+)
 
 var ConfigFileName *string
 var CacheFileName *string
@@ -9,7 +11,7 @@ var Verbose *int
 var Downloader *string
 var DownloaderParams *string
 
-func init()  {
+func init() {
 	ConfigFileName = flag.String("configFile", "config.json", "Config file location")
 	CacheFileName = flag.String("cacheFile", "cache.json", "Cache file location")
 	RunEditor = flag.Bool("editConfig", false, "Run configuration editor")
