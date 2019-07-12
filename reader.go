@@ -17,8 +17,9 @@ func main() {
 	}
 
 	if *cli.RunEditor {
-		config.Edit()
-		_ = config.WriteToFile(*cli.ConfigFileName)
+		if config.Edit() {
+			_ = config.WriteToFile(*cli.ConfigFileName)
+		}
 		return
 	}
 
