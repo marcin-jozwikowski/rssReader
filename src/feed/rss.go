@@ -6,7 +6,6 @@ import (
 	"log"
 	"rssReader/src/cli"
 	"rssReader/src/configuration"
-	"strconv"
 	"strings"
 )
 
@@ -15,22 +14,19 @@ type Rss struct {
 	Channel Channel  `xml:"channel"`
 }
 
-func Read(config configuration.Config, cache configuration.Config) configuration.Config {
-	for channelUrl, filterValues := range config {
+func Read(config configuration.Config) configuration.Config {
+	for confID := range config.Feeds {
+		channelUrl := config.Feeds[confID].Url
+		filterValues := config.Feeds[confID].SearchPhrases
 		if cli.IsVerboseDebug() {
 			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelUrl))
 		}
-		var channelMaxID int
-		if cache[channelUrl] != nil {
-			channelMaxID, _ = strconv.Atoi(cache[channelUrl][0])
-		} else {
-			channelMaxID = 0
-		}
 		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Last checked item ID: %d", channelMaxID))
+			fmt.Println(fmt.Sprintf("Last checked item ID: %d", config.Feeds[confID].MaxChecked))
 		}
 		allFeed := getRSSFeed(channelUrl)
-		matching, channelMaxID := allFeed.filter(filterValues, channelMaxID)
+		matching, newMaxID := allFeed.filter(filterValues, config.Feeds[confID].MaxChecked)
+		config.Feeds[confID].MaxChecked = newMaxID
 		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelUrl))
 		}
@@ -39,10 +35,9 @@ func Read(config configuration.Config, cache configuration.Config) configuration
 				fmt.Println(matching[matchID].Identify())
 			}
 		}
-		cache[channelUrl] = []string{strconv.Itoa(channelMaxID)}
 	}
 
-	return cache
+	return config
 }
 
 func getXML(url string) ([]byte, error) {

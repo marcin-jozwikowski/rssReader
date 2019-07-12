@@ -7,28 +7,25 @@ import (
 	"strings"
 )
 
-var configKeys []string
-
-func (config Config) Edit() {
+func (config *Config) Edit() {
 	canRun := true
 	for {
-		canRun = config.keysEditAction()
+		canRun = config.feedsEditAction()
 		if !canRun {
 			break
 		}
 	}
 }
 
-func (config Config) keysEditAction() bool {
+func (config *Config) feedsEditAction() bool {
 	//cli.ClearConsole()
-	config.printKeys()
+	config.printFeeds()
 	fmt.Println("  C: Create new")
 	fmt.Println("  X: Exit")
 	readKey := strings.ToLower(cli.ReadString(""))
 	switch readKey {
 	case "x":
 		return false
-		break
 
 	case "c":
 		config.createNewURLAction()
@@ -36,52 +33,35 @@ func (config Config) keysEditAction() bool {
 
 	default:
 		keyId, _ := strconv.Atoi(readKey)
-		if keyId > 0 && keyId <= len(configKeys) {
-			config.editURLValuesAction(keyId)
+		if keyId > 0 && keyId <= len(config.Feeds) {
+			if !config.Feeds[keyId-1].editURLValuesAction() {
+				config.Feeds = append(config.Feeds[:keyId-1], config.Feeds[keyId:]...)
+			}
 		}
 	}
 	return true
 }
 
-func (config Config) printKeys() {
+func (config *Config) printFeeds() {
 	fmt.Println("*** Entries available ***")
-	for id, key := range config.parseKeys() {
-		fmt.Printf("  %v: %v", strconv.Itoa(id+1), key)
+	for id, key := range config.Feeds {
+		fmt.Printf("  %v: %v", strconv.Itoa(id+1), key.Url)
 		fmt.Println()
 	}
 	fmt.Println()
 }
 
-func (config Config) parseKeys() []string {
-	if configKeys == nil {
-		id := 0
-		configKeys = make([]string, len(config))
-		for key := range config {
-			configKeys[id] = key
-			id++
-		}
-	}
-
-	return configKeys
-}
-
-func resetKeys() {
-	configKeys = nil
-}
-
-func (config Config) createNewURLAction() {
+func (config *Config) createNewURLAction() {
 	fmt.Println("*** Create new ***")
 	r := cli.ReadString("Name new URL:")
-	config[r] = []string{}
-	resetKeys()
+	config.Feeds = append(config.Feeds, FeedSource{Url: r})
 }
 
-func (config Config) editURLValuesAction(keyId int) {
-	mainKey := keyId - 1
+func (feedSource *FeedSource) editURLValuesAction() bool {
 	for {
 		cli.ClearConsole()
-		fmt.Println("*** Edit URL " + configKeys[mainKey])
-		for key, value := range config[configKeys[mainKey]] {
+		fmt.Println("*** Edit URL " + feedSource.Url)
+		for key, value := range feedSource.SearchPhrases {
 			fmt.Printf("  %v: %v", strconv.Itoa(key), value)
 			fmt.Println()
 		}
@@ -94,29 +74,25 @@ func (config Config) editURLValuesAction(keyId int) {
 		r := strings.ToLower(cli.ReadString(""))
 		switch r {
 		case "x":
-			return
+			return true
 
 		case "d":
-			delete(config, configKeys[mainKey])
-			resetKeys()
-			return
+			return false
 
 		case "a":
-			newValue := cli.ReadString("*** Name new value for " + configKeys[mainKey])
-			config[configKeys[mainKey]] = append(config[configKeys[mainKey]], newValue)
+			newValue := cli.ReadString("*** Name new value for " + feedSource.Url)
+			feedSource.SearchPhrases = append(feedSource.SearchPhrases, newValue)
 			break
 
 		case "e":
 			newUrl := cli.ReadString("New URL")
-			config[newUrl] = config[configKeys[mainKey]]
-			delete(config, configKeys[mainKey])
-			resetKeys()
-			return
+			feedSource.Url = newUrl
+			return true
 
 		default:
 			key, _ := strconv.Atoi(r)
-			if len(config[configKeys[mainKey]]) > key {
-				config[configKeys[mainKey]] = append(config[configKeys[mainKey]][:key], config[configKeys[mainKey]][key+1:]...)
+			if len(feedSource.SearchPhrases) > key {
+				feedSource.SearchPhrases = append(feedSource.SearchPhrases[:key], feedSource.SearchPhrases[key+1:]...)
 			}
 		}
 	}
