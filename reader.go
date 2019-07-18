@@ -23,6 +23,6 @@ func main() {
 		return
 	}
 
-	config = feed.Read(config)
+	feed.Read(&config)
 	_ = config.WriteToFile(*cli.ConfigFileName)
 }

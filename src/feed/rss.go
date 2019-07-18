@@ -14,7 +14,7 @@ type Rss struct {
 	Channel Channel  `xml:"channel"`
 }
 
-func Read(config configuration.Config) configuration.Config {
+func Read(config *configuration.Config) {
 	for confID := range config.Feeds {
 		channelUrl := config.Feeds[confID].Url
 		filterValues := config.Feeds[confID].SearchPhrases
@@ -36,8 +36,6 @@ func Read(config configuration.Config) configuration.Config {
 			}
 		}
 	}
-
-	return config
 }
 
 func getXML(url string) ([]byte, error) {
