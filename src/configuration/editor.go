@@ -60,6 +60,7 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 		fmt.Println("  E: Edit URL itself")
 		fmt.Println("  D: Delete whole URL")
 		fmt.Println("  A: Add value")
+		fmt.Println("  R: Reset search counter")
 		fmt.Println("  X: Go up")
 		fmt.Println("     Name a value to remove")
 		r := strings.ToLower(cli.ReadString(""))
@@ -70,9 +71,13 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 		case "d":
 			return false
 
+		case "r":
+			feedSource.ResetMaxChecked()
+			break
+
 		case "a":
 			newValue := cli.ReadString("*** Name new value for " + feedSource.Url)
-			feedSource.SearchPhrases = append(feedSource.SearchPhrases, newValue)
+			feedSource.AddSearchPhrase(newValue)
 			break
 
 		case "e":

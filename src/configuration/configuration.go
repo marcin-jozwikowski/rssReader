@@ -62,3 +62,10 @@ func (config Config) WriteToFile(filename string) error {
 
 	return nil
 }
+
+func (feedSource *FeedSource) ResetMaxChecked() {
+	feedSource.MaxChecked = 0
+}
+func (feedSource *FeedSource) AddSearchPhrase(phrase string) {
+	feedSource.SearchPhrases = append(feedSource.SearchPhrases, phrase)
+}
