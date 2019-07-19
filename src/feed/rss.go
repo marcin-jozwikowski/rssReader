@@ -15,20 +15,19 @@ type Rss struct {
 }
 
 func Read(config *configuration.Config) {
-	for confID := range config.Feeds {
-		channelUrl := config.Feeds[confID].Url
-		filterValues := config.Feeds[confID].SearchPhrases
+	for confID := range *config.GetFeeds() {
+		configFeed := config.GetFeedAt(confID)
+
+		filterValues := configFeed.SearchPhrases
 		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelUrl))
+			fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
+			fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 		}
-		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Last checked item ID: %d", config.Feeds[confID].MaxChecked))
-		}
-		allFeed := getRSSFeed(channelUrl)
-		matching, newMaxID := allFeed.filter(filterValues, config.Feeds[confID].MaxChecked)
-		config.Feeds[confID].MaxChecked = newMaxID
+		allFeed := getRSSFeed(configFeed.Url)
+		matching, newMaxID := allFeed.filter(filterValues, configFeed.MaxChecked)
+		configFeed.SetMaxChecked(newMaxID)
 		if cli.IsVerboseInfo() {
-			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelUrl))
+			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), configFeed.Url))
 		}
 		for matchID := 0; matchID < len(matching); matchID++ {
 			if cli.IsVerbose() {
@@ -38,17 +37,12 @@ func Read(config *configuration.Config) {
 	}
 }
 
-func getXML(url string) ([]byte, error) {
+func getRSSFeed(channelUrl string) *Rss {
 	if cli.IsVerboseDebug() {
-		fmt.Println("Reading URL " + url)
+		fmt.Println("Reading URL " + channelUrl)
 	}
 
-	reader := GetRssReader(*cli.Downloader)
-	return reader.GetXML(url)
-}
-
-func getRSSFeed(channelUrl string) Rss {
-	xmlBytes, err := getXML(channelUrl)
+	xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl)
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
 	}
@@ -60,7 +54,7 @@ func getRSSFeed(channelUrl string) Rss {
 		log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
 	}
 
-	return feed
+	return &feed
 }
 
 func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {

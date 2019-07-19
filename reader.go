@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	config, configErr := configuration.ReadFromFile(*cli.ConfigFileName)
+	config, configErr := configuration.ReadConfigFromFile(*cli.ConfigFileName)
 	if configErr != nil {
 		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())

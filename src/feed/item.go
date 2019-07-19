@@ -22,7 +22,6 @@ func (item *Item) Matches(name string) bool {
 }
 
 func (item *Item) GetID() (int, error) {
-	re := regexp.MustCompile(`(\d+)`)
-	numberPart := re.FindStringSubmatch(item.Guid)
+	numberPart := regexp.MustCompile(`(\d+)`).FindStringSubmatch(item.Guid)
 	return strconv.Atoi(numberPart[0])
 }

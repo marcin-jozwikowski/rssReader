@@ -11,8 +11,8 @@ func (config *Config) Edit() bool {
 	for {
 		cli.ClearConsole()
 		fmt.Println("*** Entries available ***")
-		for id, key := range config.Feeds {
-			fmt.Printf("  %v: %v", strconv.Itoa(id+1), key.Url)
+		for id := range *config.GetFeeds() {
+			fmt.Printf("  %v: %v", strconv.Itoa(id+1), config.GetFeedAt(id).Url)
 			fmt.Println()
 		}
 		fmt.Println()
@@ -34,8 +34,8 @@ func (config *Config) Edit() bool {
 		default:
 			keyId, _ := strconv.Atoi(readKey)
 			if keyId > 0 && keyId <= len(config.Feeds) {
-				if !config.Feeds[keyId-1].editURLValuesAction() {
-					config.Feeds = append(config.Feeds[:keyId-1], config.Feeds[keyId:]...)
+				if !config.GetFeedAt(keyId - 1).editURLValuesAction() {
+					config.DeleteFeetAt(keyId - 1)
 				}
 			}
 		}
@@ -45,7 +45,7 @@ func (config *Config) Edit() bool {
 func (config *Config) createNewURLAction() {
 	fmt.Println("*** Create new ***")
 	r := cli.ReadString("Name new URL:")
-	config.Feeds = append(config.Feeds, FeedSource{Url: r})
+	config.AddFeed(r)
 }
 
 func (feedSource *FeedSource) editURLValuesAction() bool {
@@ -76,19 +76,17 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 			break
 
 		case "a":
-			newValue := cli.ReadString("*** Name new value for " + feedSource.Url)
-			feedSource.AddSearchPhrase(newValue)
+			feedSource.AddSearchPhrase(cli.ReadString("*** Name new value for " + feedSource.Url))
 			break
 
 		case "e":
-			newUrl := cli.ReadString("New URL")
-			feedSource.Url = newUrl
+			feedSource.Url = cli.ReadString("New URL")
 			return true
 
 		default:
 			key, _ := strconv.Atoi(r)
 			if key > 0 && len(feedSource.SearchPhrases) >= key {
-				feedSource.SearchPhrases = append(feedSource.SearchPhrases[:key-1], feedSource.SearchPhrases[key:]...)
+				feedSource.DeleteSearchPhraseAt(key)
 			}
 		}
 	}
