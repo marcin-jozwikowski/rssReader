@@ -77,6 +77,7 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 
 		case "a":
 			feedSource.AddSearchPhrase(cli.ReadString("*** Name new value for " + feedSource.Url))
+			feedSource.ResetMaxChecked()
 			break
 
 		case "e":
