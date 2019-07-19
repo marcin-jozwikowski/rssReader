@@ -17,8 +17,13 @@ func (item *Item) Identify() string {
 	return item.Guid + " ---> " + item.Title
 }
 
-func (item *Item) Matches(name string) bool {
-	return strings.Contains(item.Title, name)
+func (item *Item) HasMatch(searches *[]string) bool {
+	for _, name := range *searches {
+		if strings.Contains(item.Title, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func (item *Item) GetID() (int, error) {

@@ -18,22 +18,16 @@ func Read(config *configuration.Config) {
 	for confID := range *config.GetFeeds() {
 		configFeed := config.GetFeedAt(confID)
 
-		filterValues := configFeed.SearchPhrases
 		if cli.IsVerboseDebug() {
 			fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 			fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 		}
 		allFeed := getRSSFeed(configFeed.Url)
-		matching, newMaxID := allFeed.filter(filterValues, configFeed.MaxChecked)
-		configFeed.SetMaxChecked(newMaxID)
+		allFeed.filter(configFeed)
 		if cli.IsVerboseInfo() {
-			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), configFeed.Url))
+			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
 		}
-		for matchID := 0; matchID < len(matching); matchID++ {
-			if cli.IsVerbose() {
-				fmt.Println(matching[matchID].Identify())
-			}
-		}
+		allFeed.ListAll()
 	}
 }
 
@@ -57,41 +51,45 @@ func getRSSFeed(channelUrl string) *Rss {
 	return &feed
 }
 
-func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
-	var result []Item
-	newMaxID := maxID
+func (rss *Rss) filter(feedSource *configuration.FeedSource) {
 	if cli.IsVerboseDebug() {
-		fmt.Println("Checking against: " + strings.Join(values, " | "))
+		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
-	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
+	maxChecked := feedSource.MaxChecked
+	for testItemPosition := 0; testItemPosition < len(rss.Channel.Items); {
 		// for each found RSS item:
-		testItem := rss.Channel.Items[itemID]
+		testItem := &rss.Channel.Items[testItemPosition]
 		testItemID, _ := testItem.GetID()
-		if maxID < testItemID {
+		if maxChecked < testItemID {
 			// if current itemID is greater than last checked
 			if cli.IsVerboseDebug() {
 				fmt.Println("Checking item: " + testItem.Title)
 			}
-			for testValueID := 0; testValueID < len(values); testValueID++ {
-				// test item against all keywords
-				if testItem.Matches(values[testValueID]) {
-					if cli.IsVerboseInfo() {
-						fmt.Println(fmt.Sprintf("Item %s mathed by %s", testItem.Title, values[testValueID]))
-					}
-					result = append(result, testItem)
-					break
+			if testItem.HasMatch(&feedSource.SearchPhrases) {
+				if cli.IsVerboseInfo() {
+					fmt.Println(fmt.Sprintf("Item %s has a math", testItem.Title))
 				}
+				testItemPosition++
+				continue
+			} else {
+				rss.Channel.RemoveItem(*testItem)
 			}
-			if testItemID > newMaxID {
-				newMaxID = testItemID
-			}
+			feedSource.SetMaxChecked(testItemID)
 		} else {
 			if cli.IsVerboseDebug() {
-				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, maxID))
+				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, feedSource.MaxChecked))
 			}
+			// if this item has been already checked only those preceeding it can be used
+			rss.Channel.Items = rss.Channel.Items[:testItemPosition]
 			break
 		}
 	}
+}
 
-	return result, newMaxID
+func (rss *Rss) ListAll() {
+	for _, match := range rss.Channel.Items {
+		if cli.IsVerbose() {
+			fmt.Println(match.Identify())
+		}
+	}
 }

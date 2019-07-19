@@ -89,7 +89,9 @@ func (feedSource *FeedSource) AddSearchPhrase(phrase string) {
 }
 
 func (feedSource *FeedSource) SetMaxChecked(newMax int) {
-	feedSource.MaxChecked = newMax
+	if newMax > 0 && newMax > feedSource.MaxChecked {
+		feedSource.MaxChecked = newMax
+	}
 }
 
 func (feedSource *FeedSource) DeleteSearchPhraseAt(key int) {
