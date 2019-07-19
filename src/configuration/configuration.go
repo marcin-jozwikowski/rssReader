@@ -17,7 +17,7 @@ type FeedSource struct {
 	MaxChecked    int
 }
 
-func ReadFromFile(filename string) (Config, error) {
+func ReadConfigFromFile(filename string) (Config, error) {
 	if _, err := os.Stat(filename); err == nil {
 		config, readErr := fromFile(filename)
 		if nil != readErr {
@@ -25,7 +25,8 @@ func ReadFromFile(filename string) (Config, error) {
 		}
 		return config, nil
 	} else if os.IsNotExist(err) {
-		fileWriteErr := Config{}.WriteToFile(filename)
+		newConfig := Config{}
+		fileWriteErr := newConfig.WriteToFile(filename)
 		if fileWriteErr != nil {
 			return Config{}, fileWriteErr
 		}
@@ -49,7 +50,7 @@ func fromFile(filename string) (Config, error) {
 	return raw, nil
 }
 
-func (config Config) WriteToFile(filename string) error {
+func (config *Config) WriteToFile(filename string) error {
 	file, err := json.MarshalIndent(config, "", " ")
 	if err != nil {
 		return fmt.Errorf("error while encoding Config: %v", err.Error())
@@ -63,9 +64,34 @@ func (config Config) WriteToFile(filename string) error {
 	return nil
 }
 
+func (config *Config) GetFeeds() *[]FeedSource {
+	return &config.Feeds
+}
+
+func (config *Config) GetFeedAt(feedID int) *FeedSource {
+	return &config.Feeds[feedID]
+}
+
+func (config *Config) DeleteFeetAt(keyId int) {
+	config.Feeds = append(config.Feeds[:keyId], config.Feeds[keyId+1:]...)
+}
+
+func (config *Config) AddFeed(url string) {
+	config.Feeds = append(config.Feeds, FeedSource{Url: url})
+}
+
 func (feedSource *FeedSource) ResetMaxChecked() {
 	feedSource.MaxChecked = 0
 }
+
 func (feedSource *FeedSource) AddSearchPhrase(phrase string) {
 	feedSource.SearchPhrases = append(feedSource.SearchPhrases, phrase)
+}
+
+func (feedSource *FeedSource) SetMaxChecked(newMax int) {
+	feedSource.MaxChecked = newMax
+}
+
+func (feedSource *FeedSource) DeleteSearchPhraseAt(key int) {
+	feedSource.SearchPhrases = append(feedSource.SearchPhrases[:key-1], feedSource.SearchPhrases[key:]...)
 }
