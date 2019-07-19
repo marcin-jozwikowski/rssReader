@@ -3,20 +3,20 @@ package feed
 import (
 	"bufio"
 	"bytes"
-	"cli"
 	"fmt"
 	"github.com/headzoo/surf/errors"
 	"gopkg.in/headzoo/surf.v1"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+	"rssReader/src/cli"
 	"strings"
 )
 
 const readerTypeNative = "native"
-const readerTypePhantomjs = "phantomJS"
 const readerTypeSurf = "surf"
 const readerTypeWget = "wget"
+const readerTypeCustom = "custom"
 
 type RssReader interface {
 	GetXML(string) ([]byte, error)
@@ -47,18 +47,23 @@ func (NativeRssReader) GetXML(url string) ([]byte, error) {
 	return data, nil
 }
 
-type RssReaderPhantomJS struct {
+type RssReaderCustom struct {
 }
 
-func (RssReaderPhantomJS) GetXML(url string) ([]byte, error) {
+func (RssReaderCustom) GetXML(url string) ([]byte, error) {
 	params := *cli.DownloaderParams
 	if strings.Contains(params, "%s") {
 		params = fmt.Sprintf(params, url)
+	} else {
+		params += " " + url
 	}
+	command := strings.Fields(params)[0]
+	params = strings.TrimPrefix(params, command+" ")
+
 	if cli.IsVerboseDebug() {
-		fmt.Println("Running PhantomJS with params: " + params)
+		fmt.Println(fmt.Sprintf("Running %s with params: %s", command, params))
 	}
-	return exec.Command("phantomjs", params).Output()
+	return exec.Command(command, params).Output()
 }
 
 type RssReaderWget struct {
@@ -106,12 +111,9 @@ func GetRssReader(downloader string) RssReader {
 	var reader RssReader
 
 	switch downloader {
+	default:
 	case readerTypeSurf:
 		reader = RssReaderSurf{}
-		break
-
-	case readerTypePhantomjs:
-		reader = RssReaderPhantomJS{}
 		break
 
 	case readerTypeNative:
@@ -120,6 +122,10 @@ func GetRssReader(downloader string) RssReader {
 
 	case readerTypeWget:
 		reader = RssReaderWget{}
+		break
+
+	case readerTypeCustom:
+		reader = RssReaderCustom{}
 		break
 	}
 

@@ -1,33 +1,28 @@
 package main
 
 import (
-	"cli"
-	"configuration"
-	"feed"
 	"fmt"
+	"rssReader/src/cli"
+	"rssReader/src/configuration"
+	"rssReader/src/feed"
 )
 
 func main() {
-	config, configErr := configuration.ReadFromFile(*cli.ConfigFileName)
-	cache, cacheErr := configuration.ReadFromFile(*cli.CacheFileName)
+	config, configErr := configuration.ReadConfigFromFile(*cli.ConfigFileName)
 	if configErr != nil {
 		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())
 		}
 		*cli.RunEditor = true // enforce config editor
 	}
-	if cacheErr != nil {
-		if cli.IsVerbose() {
-			fmt.Println(cacheErr.Error())
-		}
-	}
 
 	if *cli.RunEditor {
-		config.Edit()
-		_ = config.WriteToFile(*cli.ConfigFileName)
+		if config.Edit() {
+			_ = config.WriteToFile(*cli.ConfigFileName)
+		}
 		return
 	}
 
-	cache = feed.Read(config, cache)
-	_ = cache.WriteToFile(*cli.CacheFileName)
+	feed.Read(&config)
+	_ = config.WriteToFile(*cli.ConfigFileName)
 }

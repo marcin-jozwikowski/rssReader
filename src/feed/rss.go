@@ -1,12 +1,11 @@
 package feed
 
 import (
-	"cli"
-	"configuration"
 	"encoding/xml"
 	"fmt"
 	"log"
-	"strconv"
+	"rssReader/src/cli"
+	"rssReader/src/configuration"
 	"strings"
 )
 
@@ -15,47 +14,29 @@ type Rss struct {
 	Channel Channel  `xml:"channel"`
 }
 
-func Read(config configuration.Config, cache configuration.Config) configuration.Config {
-	for channelUrl, filterValues := range config {
+func Read(config *configuration.Config) {
+	for confID := range *config.GetFeeds() {
+		configFeed := config.GetFeedAt(confID)
+
 		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Reading channel: `%s`", channelUrl))
+			fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
+			fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 		}
-		var channelMaxID int
-		if cache[channelUrl] != nil {
-			channelMaxID, _ = strconv.Atoi(cache[channelUrl][0])
-		} else {
-			channelMaxID = 0
-		}
-		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Last checked item ID: %d", channelMaxID))
-		}
-		allFeed := getRSSFeed(channelUrl)
-		matching, channelMaxID := allFeed.filter(filterValues, channelMaxID)
+		allFeed := getRSSFeed(configFeed.Url)
+		allFeed.filter(configFeed)
 		if cli.IsVerboseInfo() {
-			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(matching), channelUrl))
+			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
 		}
-		for matchID := 0; matchID < len(matching); matchID++ {
-			if cli.IsVerbose() {
-				fmt.Println(matching[matchID].Identify())
-			}
-		}
-		cache[channelUrl] = []string{strconv.Itoa(channelMaxID)}
+		allFeed.ListAll()
 	}
-
-	return cache
 }
 
-func getXML(url string) ([]byte, error) {
+func getRSSFeed(channelUrl string) *Rss {
 	if cli.IsVerboseDebug() {
-		fmt.Println("Reading URL " + url)
+		fmt.Println("Reading URL " + channelUrl)
 	}
 
-	reader := GetRssReader(*cli.Downloader)
-	return reader.GetXML(url)
-}
-
-func getRSSFeed(channelUrl string) Rss {
-	xmlBytes, err := getXML(channelUrl)
+	xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl)
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
 	}
@@ -67,44 +48,48 @@ func getRSSFeed(channelUrl string) Rss {
 		log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
 	}
 
-	return feed
+	return &feed
 }
 
-func (rss *Rss) filter(values []string, maxID int) ([]Item, int) {
-	var result []Item
-	newMaxID := maxID
+func (rss *Rss) filter(feedSource *configuration.FeedSource) {
 	if cli.IsVerboseDebug() {
-		fmt.Println("Checking against: " + strings.Join(values, " | "))
+		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
-	for itemID := 0; itemID < len(rss.Channel.Items); itemID++ {
+	maxChecked := feedSource.MaxChecked
+	for testItemPosition := 0; testItemPosition < len(rss.Channel.Items); {
 		// for each found RSS item:
-		testItem := rss.Channel.Items[itemID]
+		testItem := &rss.Channel.Items[testItemPosition]
 		testItemID, _ := testItem.GetID()
-		if maxID < testItemID {
+		if maxChecked < testItemID {
 			// if current itemID is greater than last checked
 			if cli.IsVerboseDebug() {
 				fmt.Println("Checking item: " + testItem.Title)
 			}
-			for testValueID := 0; testValueID < len(values); testValueID++ {
-			// test item against all keywords
-				if testItem.Matches(values[testValueID]) {
-					if cli.IsVerboseInfo() {
-						fmt.Println(fmt.Sprintf("Item %s mathed by %s", testItem.Title, values[testValueID]))
-					}
-					result = append(result, testItem)
-					break
+			if testItem.HasMatch(&feedSource.SearchPhrases) {
+				if cli.IsVerboseInfo() {
+					fmt.Println(fmt.Sprintf("Item %s has a math", testItem.Title))
 				}
+				testItemPosition++
+				continue
+			} else {
+				rss.Channel.RemoveItem(*testItem)
 			}
-			if testItemID > newMaxID {
-				newMaxID = testItemID
-			}
+			feedSource.SetMaxChecked(testItemID)
 		} else {
 			if cli.IsVerboseDebug() {
-				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, maxID))
+				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, feedSource.MaxChecked))
 			}
+			// if this item has been already checked only those preceeding it can be used
+			rss.Channel.Items = rss.Channel.Items[:testItemPosition]
 			break
 		}
 	}
+}
 
-	return result, newMaxID
+func (rss *Rss) ListAll() {
+	for _, match := range rss.Channel.Items {
+		if cli.IsVerbose() {
+			fmt.Println(match.Identify())
+		}
+	}
 }
