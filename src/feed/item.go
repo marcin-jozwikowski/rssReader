@@ -2,19 +2,23 @@ package feed
 
 import (
 	"encoding/xml"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Item struct {
 	XMLName xml.Name `xml:"item"`
 	Title   string   `xml:"title"`
 	Guid    string   `xml:"guid"`
+	Created string   `xml:"pubDate"`
 }
 
 func (item *Item) Identify() string {
-	return item.Guid + " ---> " + item.Title
+	created, _ := time.Parse(time.RFC1123Z, item.Created)
+	return fmt.Sprintf("[%s] %s ---> %s", created.Format("2006-01-02 15:04:05"), item.Guid, item.Title)
 }
 
 func (item *Item) HasMatch(searches *[]string) bool {
