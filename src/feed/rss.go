@@ -22,12 +22,13 @@ func Read(config *configuration.Config) {
 			fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 			fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 		}
-		allFeed := getRSSFeed(configFeed.Url)
-		allFeed.filter(configFeed)
-		if cli.IsVerboseInfo() {
-			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
+		if allFeed := getRSSFeed(configFeed.Url); allFeed != nil {
+			allFeed.filterOut(configFeed)
+			if cli.IsVerboseInfo() {
+				fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
+			}
+			allFeed.ListAll()
 		}
-		allFeed.ListAll()
 	}
 }
 
@@ -36,22 +37,21 @@ func getRSSFeed(channelUrl string) *Rss {
 		fmt.Println("Reading URL " + channelUrl)
 	}
 
-	xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl)
-	if err != nil {
+	var feed Rss
+	if xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl); err == nil {
+		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
+			return &feed
+		} else {
+			log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
+		}
+	} else {
 		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
 	}
 
-	var feed Rss
-	err2 := xml.Unmarshal(xmlBytes, &feed)
-
-	if err2 != nil {
-		log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
-	}
-
-	return &feed
+	return nil
 }
 
-func (rss *Rss) filter(feedSource *configuration.FeedSource) {
+func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
