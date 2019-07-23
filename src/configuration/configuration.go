@@ -74,6 +74,13 @@ func (config *Config) AddFeed(url string) {
 	config.Feeds = append(config.Feeds, FeedSource{Url: url})
 }
 
+func (config *Config) ResetCheckedCounters() {
+	for feedID := range config.Feeds {
+		feed := &config.Feeds[feedID]
+		feed.ResetMaxChecked()
+	}
+}
+
 func (feedSource *FeedSource) ResetMaxChecked() {
 	feedSource.MaxChecked = 0
 }
