@@ -16,6 +16,10 @@ func main() {
 		*cli.RunEditor = true // enforce config editor
 	}
 
+	if *cli.ResetChecked {
+		config.ResetCheckedCounters()
+	}
+
 	if *cli.RunEditor {
 		if config.Edit() {
 			_ = config.WriteToFile(*cli.ConfigFileName)
