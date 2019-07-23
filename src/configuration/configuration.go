@@ -19,15 +19,14 @@ type FeedSource struct {
 
 func ReadConfigFromFile(filename string) (Config, error) {
 	if _, err := os.Stat(filename); err == nil {
-		config, readErr := fromFile(filename)
-		if nil != readErr {
+		if config, readErr := fromFile(filename); nil == readErr {
+			return config, nil
+		} else {
 			return Config{}, readErr
 		}
-		return config, nil
 	} else if os.IsNotExist(err) {
 		newConfig := Config{}
-		fileWriteErr := newConfig.WriteToFile(filename)
-		if fileWriteErr != nil {
+		if fileWriteErr := newConfig.WriteToFile(filename); fileWriteErr != nil {
 			return Config{}, fileWriteErr
 		}
 		return Config{}, fmt.Errorf("config file created: %v", filename)
@@ -37,31 +36,26 @@ func ReadConfigFromFile(filename string) (Config, error) {
 }
 
 func fromFile(filename string) (Config, error) {
-	var raw Config
-	fileContent, fileReadErr := ioutil.ReadFile(filename)
-	if fileReadErr != nil {
+	if fileContent, fileReadErr := ioutil.ReadFile(filename); fileReadErr != nil {
 		return Config{}, fmt.Errorf("error while opening file %v: %v", filename, fileReadErr.Error())
 	} else {
-		var jsonErr = json.Unmarshal(fileContent, &raw)
-		if jsonErr != nil {
+		var raw Config
+		if jsonErr := json.Unmarshal(fileContent, &raw); jsonErr != nil {
 			return Config{}, fmt.Errorf("error while parsing file %v: %v", filename, jsonErr.Error())
 		}
+		return raw, nil
 	}
-	return raw, nil
 }
 
 func (config *Config) WriteToFile(filename string) error {
-	file, err := json.MarshalIndent(config, "", " ")
-	if err != nil {
+	if file, err := json.MarshalIndent(config, "", " "); err != nil {
 		return fmt.Errorf("error while encoding Config: %v", err.Error())
+	} else {
+		if err2 := ioutil.WriteFile(filename, file, 0644); err2 != nil {
+			return fmt.Errorf("error while writing file: %v", err2.Error())
+		}
+		return nil
 	}
-
-	err2 := ioutil.WriteFile(filename, file, 0644)
-	if err2 != nil {
-		return fmt.Errorf("error while writing file: %v", err2.Error())
-	}
-
-	return nil
 }
 
 func (config *Config) GetFeeds() *[]FeedSource {
