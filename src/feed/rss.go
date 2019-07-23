@@ -7,6 +7,7 @@ import (
 	"rssReader/src/cli"
 	"rssReader/src/configuration"
 	"strings"
+	"sync"
 )
 
 type Rss struct {
@@ -15,21 +16,30 @@ type Rss struct {
 }
 
 func Read(config *configuration.Config) {
-	for confID := range *config.GetFeeds() {
-		configFeed := config.GetFeedAt(confID)
+	var waitGroup sync.WaitGroup
 
-		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
-			fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
-		}
-		if allFeed := getRSSFeed(configFeed.Url); allFeed != nil {
-			allFeed.filterOut(configFeed)
-			if cli.IsVerboseInfo() {
-				fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
-			}
-			allFeed.ListAll()
-		}
+	for confID := range *config.GetFeeds() {
+		waitGroup.Add(1)
+		go readOneFeed(config.GetFeedAt(confID), &waitGroup)
 	}
+
+	waitGroup.Wait()
+}
+
+func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup)  {
+	if cli.IsVerboseDebug() {
+		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
+		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
+	}
+	if allFeed := getRSSFeed(configFeed.Url); allFeed != nil {
+		allFeed.filterOut(configFeed)
+		if cli.IsVerboseInfo() {
+			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
+		}
+		allFeed.ListAll()
+	}
+
+	waitGroup.Done()
 }
 
 func getRSSFeed(channelUrl string) *Rss {
