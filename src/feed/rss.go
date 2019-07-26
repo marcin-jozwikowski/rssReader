@@ -52,10 +52,10 @@ func getRSSFeed(channelUrl string) *Rss {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {
-			log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
+			log.Println(fmt.Sprintf("Error parsing URL %v: %v", channelUrl, err2))
 		}
 	} else {
-		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
+		log.Println(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
 	}
 
 	return nil
