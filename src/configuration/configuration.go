@@ -81,6 +81,10 @@ func (config *Config) ResetCheckedCounters() {
 	}
 }
 
+func (config *Config) CountFeeds() int {
+	return len(config.Feeds)
+}
+
 func (feedSource *FeedSource) ResetMaxChecked() {
 	feedSource.MaxChecked = 0
 }
