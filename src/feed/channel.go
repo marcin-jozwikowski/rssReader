@@ -35,3 +35,19 @@ func (channel *Channel) RemoveItem(item Item) bool {
 	}
 	return false
 }
+
+func (channel *Channel) GetAllItems() []Item {
+	return channel.Items
+}
+
+func (channel *Channel) DropItemAtPosition(itemPosition int) {
+	channel.Items = channel.Items[:itemPosition]
+}
+
+func (channel *Channel) GetItemsCount() int {
+	return len(channel.Items)
+}
+
+func (channel *Channel) GetItemAt(testItemPosition int) *Item {
+	return &channel.Items[testItemPosition]
+}

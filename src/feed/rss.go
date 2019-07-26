@@ -17,16 +17,26 @@ type Rss struct {
 
 func Read(config *configuration.Config) {
 	var waitGroup sync.WaitGroup
+	results := make(chan Item, config.CountFeeds()*20)
 
 	for confID := range *config.GetFeeds() {
 		waitGroup.Add(1)
-		go readOneFeed(config.GetFeedAt(confID), &waitGroup)
+		go readOneFeed(config.GetFeedAt(confID), &waitGroup, results)
 	}
 
 	waitGroup.Wait()
+	close(results)
+
+	for {
+		item, hasMore := <-results
+		if !hasMore {
+			break
+		}
+		fmt.Println(item.Identify())
+	}
 }
 
-func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup)  {
+func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup, results chan Item) {
 	if cli.IsVerboseDebug() {
 		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
@@ -36,7 +46,7 @@ func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup
 		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
 		}
-		allFeed.ListAll()
+		allFeed.GetAllItems(results)
 	}
 
 	waitGroup.Done()
@@ -66,9 +76,9 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
 	maxChecked := feedSource.MaxChecked
-	for testItemPosition := 0; testItemPosition < len(rss.Channel.Items); {
+	for testItemPosition := 0; testItemPosition < rss.Channel.GetItemsCount(); {
 		// for each found RSS item:
-		testItem := &rss.Channel.Items[testItemPosition]
+		testItem := rss.Channel.GetItemAt(testItemPosition)
 		testItemID, _ := testItem.GetID()
 		if maxChecked < testItemID {
 			// if current itemID is greater than last checked
@@ -90,16 +100,14 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, feedSource.MaxChecked))
 			}
 			// if this item has been already checked only those preceeding it can be used
-			rss.Channel.Items = rss.Channel.Items[:testItemPosition]
+			rss.Channel.DropItemAtPosition(testItemPosition)
 			break
 		}
 	}
 }
 
-func (rss *Rss) ListAll() {
-	for _, match := range rss.Channel.Items {
-		if cli.IsVerbose() {
-			fmt.Println(match.Identify())
-		}
+func (rss *Rss) GetAllItems(results chan Item) {
+	for _, item := range rss.Channel.GetAllItems() {
+		results <- item
 	}
 }
