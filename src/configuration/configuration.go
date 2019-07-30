@@ -15,7 +15,7 @@ type FeedSource struct {
 	Url           string
 	SearchPhrases []string
 	MaxChecked    int
-	PostProcess   string
+	postProcess   string
 }
 
 func ReadConfigFromFile(filename string) (Config, error) {
@@ -105,9 +105,9 @@ func (feedSource *FeedSource) DeleteSearchPhraseAt(key int) {
 }
 
 func (feedSource *FeedSource) GetPostProcessRegex() string {
-	return feedSource.PostProcess
+	return feedSource.postProcess
 }
 
 func (feedSource *FeedSource) SetPostProcessRegex(postProcess string) {
-	feedSource.PostProcess = postProcess
+	feedSource.postProcess = postProcess
 }
