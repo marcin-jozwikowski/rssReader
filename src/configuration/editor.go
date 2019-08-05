@@ -57,8 +57,8 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 			fmt.Println()
 		}
 		fmt.Println()
-		if "" != feedSource.GetPostProcessRegex() {
-			fmt.Println(fmt.Sprintf("  PostProcess: `%s`", feedSource.GetPostProcessRegex()))
+		if "" != feedSource.PostProcess {
+			fmt.Println(fmt.Sprintf("  PostProcess: `%s`", feedSource.PostProcess))
 			fmt.Println()
 		}
 		fmt.Println("  E: Edit URL itself")
@@ -81,7 +81,7 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 			break
 
 		case "p":
-			feedSource.SetPostProcessRegex(cli.ReadString("New PostProcess expression (empty to disable)"))
+			feedSource.PostProcess = cli.ReadString("New PostProcess expression (empty to disable)")
 			break
 
 		case "a":
