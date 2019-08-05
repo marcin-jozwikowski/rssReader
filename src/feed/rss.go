@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
+	"regexp"
 	"rssReader/src/cli"
 	"rssReader/src/configuration"
 	"strings"
@@ -18,6 +19,21 @@ type Rss struct {
 type ResultItem struct {
 	Item       Item
 	FeedSource *configuration.FeedSource
+}
+
+func (item *ResultItem) Identify() string {
+	if len(item.FeedSource.PostProcess) > 0 {
+		r := regexp.MustCompile(item.FeedSource.PostProcess)
+		if fullContent, er := GetURLReader().GetContent(item.Item.Guid); er == nil {
+			test := string(fullContent)
+			postProcessed := r.FindAllString(test, -1)
+			if len(postProcessed) > 0 {
+				item.Item.Guid = postProcessed[0]
+			}
+		}
+	}
+
+	return item.Item.Identify()
 }
 
 func Read(config *configuration.Config) {
@@ -37,7 +53,7 @@ func Read(config *configuration.Config) {
 		if !hasMore {
 			break
 		}
-		fmt.Println(returnItem.Item.Identify())
+		fmt.Println(returnItem.Identify())
 	}
 }
 
