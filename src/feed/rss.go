@@ -63,7 +63,7 @@ func getRSSFeed(channelUrl string) *Rss {
 	}
 
 	var feed Rss
-	if xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl); err == nil {
+	if xmlBytes, err := GetURLReader().GetContent(channelUrl); err == nil {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {
