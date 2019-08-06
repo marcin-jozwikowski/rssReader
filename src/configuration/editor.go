@@ -57,7 +57,12 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 			fmt.Println()
 		}
 		fmt.Println()
+		if "" != feedSource.PostProcess {
+			fmt.Println(fmt.Sprintf("  PostProcess: `%s`", feedSource.PostProcess))
+			fmt.Println()
+		}
 		fmt.Println("  E: Edit URL itself")
+		fmt.Println("  P: Edit PostProcess expression")
 		fmt.Println("  D: Delete whole URL")
 		fmt.Println("  A: Add value")
 		fmt.Println("  R: Reset search counter")
@@ -73,6 +78,10 @@ func (feedSource *FeedSource) editURLValuesAction() bool {
 
 		case "r":
 			feedSource.ResetMaxChecked()
+			break
+
+		case "p":
+			feedSource.PostProcess = cli.ReadString("New PostProcess expression (empty to disable)")
 			break
 
 		case "a":

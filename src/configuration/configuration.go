@@ -15,6 +15,7 @@ type FeedSource struct {
 	Url           string
 	SearchPhrases []string
 	MaxChecked    int
+	PostProcess   string
 }
 
 func ReadConfigFromFile(filename string) (Config, error) {
@@ -89,14 +90,14 @@ func (feedSource *FeedSource) ResetMaxChecked() {
 	feedSource.MaxChecked = 0
 }
 
-func (feedSource *FeedSource) AddSearchPhrase(phrase string) {
-	feedSource.SearchPhrases = append(feedSource.SearchPhrases, phrase)
-}
-
 func (feedSource *FeedSource) SetMaxChecked(newMax int) {
 	if newMax > 0 && newMax > feedSource.MaxChecked {
 		feedSource.MaxChecked = newMax
 	}
+}
+
+func (feedSource *FeedSource) AddSearchPhrase(phrase string) {
+	feedSource.SearchPhrases = append(feedSource.SearchPhrases, phrase)
 }
 
 func (feedSource *FeedSource) DeleteSearchPhraseAt(key int) {
