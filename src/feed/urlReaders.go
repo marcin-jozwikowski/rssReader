@@ -18,14 +18,14 @@ const readerTypeSurf = "surf"
 const readerTypeWget = "wget"
 const readerTypeCustom = "custom"
 
-type RssReader interface {
-	GetXML(string) ([]byte, error)
+type URLReader interface {
+	GetContent(string) ([]byte, error)
 }
 
-type NativeRssReader struct {
+type NativeURLReader struct {
 }
 
-func (NativeRssReader) GetXML(url string) ([]byte, error) {
+func (NativeURLReader) GetContent(url string) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running built-in downloader")
 	}
@@ -47,10 +47,10 @@ func (NativeRssReader) GetXML(url string) ([]byte, error) {
 	return data, nil
 }
 
-type RssReaderCustom struct {
+type URLReaderCustom struct {
 }
 
-func (RssReaderCustom) GetXML(url string) ([]byte, error) {
+func (URLReaderCustom) GetContent(url string) ([]byte, error) {
 	params := *cli.DownloaderParams
 	if strings.Contains(params, "%s") {
 		params = fmt.Sprintf(params, url)
@@ -66,10 +66,10 @@ func (RssReaderCustom) GetXML(url string) ([]byte, error) {
 	return exec.Command(command, params).Output()
 }
 
-type RssReaderWget struct {
+type URLReaderWget struct {
 }
 
-func (RssReaderWget) GetXML(url string) ([]byte, error) {
+func (URLReaderWget) GetContent(url string) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running custom downloader")
 	}
@@ -87,10 +87,10 @@ func (RssReaderWget) GetXML(url string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-type RssReaderSurf struct {
+type URLReaderSurf struct {
 }
 
-func (RssReaderSurf) GetXML(url string) ([]byte, error) {
+func (URLReaderSurf) GetContent(url string) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running SURF downloader")
 	}
@@ -107,25 +107,25 @@ func (RssReaderSurf) GetXML(url string) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func GetRssReader(downloader string) RssReader {
-	var reader RssReader
+func GetURLReader() URLReader {
+	var reader URLReader
 
-	switch downloader {
+	switch *cli.Downloader {
 	default:
 	case readerTypeSurf:
-		reader = RssReaderSurf{}
+		reader = URLReaderSurf{}
 		break
 
 	case readerTypeNative:
-		reader = NativeRssReader{}
+		reader = NativeURLReader{}
 		break
 
 	case readerTypeWget:
-		reader = RssReaderWget{}
+		reader = URLReaderWget{}
 		break
 
 	case readerTypeCustom:
-		reader = RssReaderCustom{}
+		reader = URLReaderCustom{}
 		break
 	}
 

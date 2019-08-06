@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
+	"regexp"
 	"rssReader/src/cli"
 	"rssReader/src/configuration"
 	"strings"
@@ -15,9 +16,29 @@ type Rss struct {
 	Channel Channel  `xml:"channel"`
 }
 
+type ResultItem struct {
+	Item       Item
+	FeedSource *configuration.FeedSource
+}
+
+func (item *ResultItem) Identify() string {
+	if len(item.FeedSource.PostProcess) > 0 {
+		r := regexp.MustCompile(item.FeedSource.PostProcess)
+		if fullContent, er := GetURLReader().GetContent(item.Item.Guid); er == nil {
+			test := string(fullContent)
+			postProcessed := r.FindAllString(test, -1)
+			if len(postProcessed) > 0 {
+				item.Item.Guid = postProcessed[0]
+			}
+		}
+	}
+
+	return item.Item.Identify()
+}
+
 func Read(config *configuration.Config) {
 	var waitGroup sync.WaitGroup
-	results := make(chan Item, config.CountFeeds()*20)
+	results := make(chan ResultItem, config.CountFeeds()*20)
 
 	for confID := range *config.GetFeeds() {
 		waitGroup.Add(1)
@@ -28,15 +49,15 @@ func Read(config *configuration.Config) {
 	close(results)
 
 	for {
-		item, hasMore := <-results
+		returnItem, hasMore := <-results
 		if !hasMore {
 			break
 		}
-		fmt.Println(item.Identify())
+		fmt.Println(returnItem.Identify())
 	}
 }
 
-func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup, results chan Item) {
+func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup, results chan ResultItem) {
 	if cli.IsVerboseDebug() {
 		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
@@ -46,7 +67,7 @@ func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup
 		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
 		}
-		allFeed.GetAllItems(results)
+		allFeed.WriteAllItemsToChannel(results, configFeed)
 	}
 
 	waitGroup.Done()
@@ -58,7 +79,7 @@ func getRSSFeed(channelUrl string) *Rss {
 	}
 
 	var feed Rss
-	if xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl); err == nil {
+	if xmlBytes, err := GetURLReader().GetContent(channelUrl); err == nil {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {
@@ -106,8 +127,8 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 	}
 }
 
-func (rss *Rss) GetAllItems(results chan Item) {
+func (rss *Rss) WriteAllItemsToChannel(results chan ResultItem, configFeed *configuration.FeedSource) {
 	for _, item := range rss.Channel.GetAllItems() {
-		results <- item
+		results <- ResultItem{Item: item, FeedSource: configFeed}
 	}
 }
