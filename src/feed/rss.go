@@ -4,9 +4,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
+	"regexp"
 	"rssReader/src/cli"
 	"rssReader/src/configuration"
 	"strings"
+	"sync"
 )
 
 type Rss struct {
@@ -14,21 +16,61 @@ type Rss struct {
 	Channel Channel  `xml:"channel"`
 }
 
-func Read(config *configuration.Config) {
-	for confID := range *config.GetFeeds() {
-		configFeed := config.GetFeedAt(confID)
+type ResultItem struct {
+	Item       Item
+	FeedSource *configuration.FeedSource
+}
 
-		if cli.IsVerboseDebug() {
-			fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
-			fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
+func (item *ResultItem) Identify() string {
+	if len(item.FeedSource.PostProcess) > 0 {
+		r := regexp.MustCompile(item.FeedSource.PostProcess)
+		if fullContent, er := GetURLReader().GetContent(item.Item.Guid); er == nil {
+			test := string(fullContent)
+			postProcessed := r.FindAllString(test, -1)
+			if len(postProcessed) > 0 {
+				item.Item.Guid = postProcessed[0]
+			}
 		}
-		allFeed := getRSSFeed(configFeed.Url)
-		allFeed.filter(configFeed)
+	}
+
+	return item.Item.Identify()
+}
+
+func Read(config *configuration.Config) {
+	var waitGroup sync.WaitGroup
+	results := make(chan ResultItem, config.CountFeeds()*20)
+
+	for confID := range *config.GetFeeds() {
+		waitGroup.Add(1)
+		go readOneFeed(config.GetFeedAt(confID), &waitGroup, results)
+	}
+
+	waitGroup.Wait()
+	close(results)
+
+	for {
+		returnItem, hasMore := <-results
+		if !hasMore {
+			break
+		}
+		fmt.Println(returnItem.Identify())
+	}
+}
+
+func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup, results chan ResultItem) {
+	if cli.IsVerboseDebug() {
+		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
+		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
+	}
+	if allFeed := getRSSFeed(configFeed.Url); allFeed != nil {
+		allFeed.filterOut(configFeed)
 		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
 		}
-		allFeed.ListAll()
+		allFeed.WriteAllItemsToChannel(results, configFeed)
 	}
+
+	waitGroup.Done()
 }
 
 func getRSSFeed(channelUrl string) *Rss {
@@ -36,29 +78,28 @@ func getRSSFeed(channelUrl string) *Rss {
 		fmt.Println("Reading URL " + channelUrl)
 	}
 
-	xmlBytes, err := GetRssReader(*cli.Downloader).GetXML(channelUrl)
-	if err != nil {
-		log.Fatalln(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
-	}
-
 	var feed Rss
-	err2 := xml.Unmarshal(xmlBytes, &feed)
-
-	if err2 != nil {
-		log.Fatalln(fmt.Sprintf("Error parsing: %v", err2))
+	if xmlBytes, err := GetURLReader().GetContent(channelUrl); err == nil {
+		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
+			return &feed
+		} else {
+			log.Println(fmt.Sprintf("Error parsing URL %v: %v", channelUrl, err2))
+		}
+	} else {
+		log.Println(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
 	}
 
-	return &feed
+	return nil
 }
 
-func (rss *Rss) filter(feedSource *configuration.FeedSource) {
+func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
 	maxChecked := feedSource.MaxChecked
-	for testItemPosition := 0; testItemPosition < len(rss.Channel.Items); {
+	for testItemPosition := 0; testItemPosition < rss.Channel.GetItemsCount(); {
 		// for each found RSS item:
-		testItem := &rss.Channel.Items[testItemPosition]
+		testItem := rss.Channel.GetItemAt(testItemPosition)
 		testItemID, _ := testItem.GetID()
 		if maxChecked < testItemID {
 			// if current itemID is greater than last checked
@@ -80,16 +121,14 @@ func (rss *Rss) filter(feedSource *configuration.FeedSource) {
 				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, feedSource.MaxChecked))
 			}
 			// if this item has been already checked only those preceeding it can be used
-			rss.Channel.Items = rss.Channel.Items[:testItemPosition]
+			rss.Channel.DropItemAtPosition(testItemPosition)
 			break
 		}
 	}
 }
 
-func (rss *Rss) ListAll() {
-	for _, match := range rss.Channel.Items {
-		if cli.IsVerbose() {
-			fmt.Println(match.Identify())
-		}
+func (rss *Rss) WriteAllItemsToChannel(results chan ResultItem, configFeed *configuration.FeedSource) {
+	for _, item := range rss.Channel.GetAllItems() {
+		results <- ResultItem{Item: item, FeedSource: configFeed}
 	}
 }
