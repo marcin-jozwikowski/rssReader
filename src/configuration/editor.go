@@ -7,12 +7,12 @@ import (
 	"strings"
 )
 
-func (config *Config) Edit() bool {
+func (configuration *Config) EditT() bool {
 	for {
 		cli.ClearConsole()
 		fmt.Println("*** Entries available ***")
-		for id := range *config.GetFeeds() {
-			fmt.Printf("  %v: %v", strconv.Itoa(id+1), config.GetFeedAt(id).Url)
+		for id := range *configuration.GetFeeds() {
+			fmt.Printf("  %v: %v", strconv.Itoa(id+1), configuration.GetFeedAt(id).Url)
 			fmt.Println()
 		}
 		fmt.Println()
@@ -28,24 +28,24 @@ func (config *Config) Edit() bool {
 			return false
 
 		case "c":
-			config.createNewURLAction()
+			configuration.createNewURLAction()
 			break
 
 		default:
 			keyId, _ := strconv.Atoi(readKey)
-			if keyId > 0 && keyId <= len(config.Feeds) {
-				if !config.GetFeedAt(keyId - 1).editURLValuesAction() {
-					config.DeleteFeetAt(keyId - 1)
+			if keyId > 0 && keyId <= len(configuration.Feeds) {
+				if !configuration.GetFeedAt(keyId - 1).editURLValuesAction() {
+					configuration.DeleteFeetAt(keyId - 1)
 				}
 			}
 		}
 	}
 }
 
-func (config *Config) createNewURLAction() {
+func (configuration *Config) createNewURLAction() {
 	fmt.Println("*** Create new ***")
 	r := cli.ReadString("Name new URL:")
-	config.AddFeed(r)
+	configuration.AddFeed(r)
 }
 
 func (feedSource *FeedSource) editURLValuesAction() bool {

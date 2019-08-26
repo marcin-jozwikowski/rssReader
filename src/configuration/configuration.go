@@ -48,8 +48,8 @@ func fromFile(filename string) (Config, error) {
 	}
 }
 
-func (config *Config) WriteToFile(filename string) error {
-	if file, err := json.MarshalIndent(config, "", " "); err != nil {
+func (configuration *Config) WriteToFile(filename string) error {
+	if file, err := json.MarshalIndent(configuration, "", " "); err != nil {
 		return fmt.Errorf("error while encoding Config: %v", err.Error())
 	} else {
 		if err2 := ioutil.WriteFile(filename, file, 0644); err2 != nil {
@@ -59,31 +59,31 @@ func (config *Config) WriteToFile(filename string) error {
 	}
 }
 
-func (config *Config) GetFeeds() *[]FeedSource {
-	return &config.Feeds
+func (configuration *Config) GetFeeds() *[]FeedSource {
+	return &configuration.Feeds
 }
 
-func (config *Config) GetFeedAt(feedID int) *FeedSource {
-	return &config.Feeds[feedID]
+func (configuration *Config) GetFeedAt(feedID int) *FeedSource {
+	return &configuration.Feeds[feedID]
 }
 
-func (config *Config) DeleteFeetAt(keyId int) {
-	config.Feeds = append(config.Feeds[:keyId], config.Feeds[keyId+1:]...)
+func (configuration *Config) DeleteFeetAt(keyId int) {
+	configuration.Feeds = append(configuration.Feeds[:keyId], configuration.Feeds[keyId+1:]...)
 }
 
-func (config *Config) AddFeed(url string) {
-	config.Feeds = append(config.Feeds, FeedSource{Url: url})
+func (configuration *Config) AddFeed(url string) {
+	configuration.Feeds = append(configuration.Feeds, FeedSource{Url: url})
 }
 
-func (config *Config) ResetCheckedCounters() {
-	for feedID := range config.Feeds {
-		feed := &config.Feeds[feedID]
+func (configuration *Config) ResetCheckedCounters() {
+	for feedID := range configuration.Feeds {
+		feed := &configuration.Feeds[feedID]
 		feed.ResetMaxChecked()
 	}
 }
 
-func (config *Config) CountFeeds() int {
-	return len(config.Feeds)
+func (configuration *Config) CountFeeds() int {
+	return len(configuration.Feeds)
 }
 
 func (feedSource *FeedSource) ResetMaxChecked() {
