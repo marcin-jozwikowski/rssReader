@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"errors"
+	"fmt"
 	cui "github.com/jroimartin/gocui"
 	"log"
 )
@@ -11,10 +12,51 @@ const ViewsFeedDetails = "feedDetails"
 const ViewsFeedResults = "feedResults"
 const ErrorsFailedAddingView = "Failed adding view"
 
-var gui *cui.Gui
 var err error
 var config *Config
 var ErrSave = errors.New("save")
+var allListViews = make(map[string]*ListView)
+
+type ListView struct {
+	items    []string
+	viewName string
+	gui      *cui.Gui
+}
+
+func (listView *ListView) Init(gui *cui.Gui, name string, items []string) {
+	listView.viewName = name
+	listView.items = items
+	listView.gui = gui
+
+	view, _ := listView.gui.SetView(name, 0, 0, 1, 1)
+
+	for _, item := range listView.items {
+		_, _ = fmt.Fprintln(view, item)
+	}
+
+	allListViews[name] = listView
+}
+
+func (listView *ListView) Draw() {
+	x0, y0, x1, y1 := getViewSize(listView.gui, listView.viewName)
+	if _, err := listView.gui.SetView(listView.viewName, x0, y0, x1, y1); err != nil {
+		log.Fatal("Cannot update sites view", err)
+	}
+}
+
+func (listView *ListView) Focus() error {
+	v, err := listView.gui.View(listView.viewName)
+	if err != nil {
+		panic(err)
+		return err
+	}
+	v.Highlight = true
+	if _, err = listView.gui.SetCurrentView(listView.viewName); err != nil {
+		panic(err)
+		return nil
+	}
+	return nil
+}
 
 func (configuration *Config) Edit() bool {
 	config = configuration
@@ -22,18 +64,26 @@ func (configuration *Config) Edit() bool {
 }
 
 func createCUI() bool {
-	gui, err = cui.NewGui(cui.OutputNormal)
+	gui, err := cui.NewGui(cui.OutputNormal)
 	if err != nil {
 		log.Fatal("Failed to build CUI", err)
 	}
 	defer gui.Close()
 
+	gui.SelFgColor = cui.ColorGreen | cui.AttrBold
+	gui.BgColor = cui.ColorDefault
+	gui.Highlight = true
 	gui.SetManagerFunc(layoutManager)
-	err = initAllViews()
-	if err != nil {
-		log.Fatal(ErrorsFailedAddingView, err)
-	}
-	initAllKeyBindings()
+
+	v := new(ListView)
+	v.Init(gui, ViewsFeedSources, config.AsList())
+
+	v = new(ListView)
+	v.Init(gui, ViewsFeedDetails, []string{})
+
+	_ = allListViews[ViewsFeedSources].Focus()
+
+	initAllKeyBindings(gui)
 
 	finalError := gui.MainLoop()
 	switch finalError {
@@ -45,7 +95,24 @@ func createCUI() bool {
 	return true
 }
 
-func initAllKeyBindings() {
+func initAllKeyBindings(gui *cui.Gui) {
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyEnter, cui.ModNone, editCurrentSource); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+
 	if err = gui.SetKeybinding("", cui.KeyCtrlS, cui.ModNone, saveAndExit); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
@@ -57,32 +124,26 @@ func initAllKeyBindings() {
 	}
 }
 
-func initAllViews() error {
-	gui.SelFgColor = cui.ColorGreen | cui.AttrBold
-	gui.BgColor = cui.ColorDefault
-	gui.Highlight = true
+func editCurrentSource(gui *cui.Gui, view *cui.View) error {
+	v := new(ListView)
+	v.Init(gui, ViewsFeedDetails, []string{"asd", "dasfsda", "asd", "dasfsda", "asd", "dasfsda"})
+	_ = v.Focus()
 
-	_, _ = gui.SetView(ViewsFeedResults, 0, 0, 1, 1)
-	_, _ = gui.SetView(ViewsFeedDetails, 0, 0, 1, 1)
-	_, _ = gui.SetView(ViewsFeedSources, 0, 0, 1, 1)
-
-	return focusView(ViewsFeedSources)
+	return nil
 }
 
-func focusView(viewName string) error {
-	v, err := gui.View(viewName)
-	if err != nil {
-		return err
-	}
-	v.Highlight = true
-	if _, err = gui.SetCurrentView(v.Name()); err != nil {
-		return err
-	}
+func moveCursorUp(i *cui.Gui, view *cui.View) error {
+	view.MoveCursor(0, -1, false)
+	return nil
+}
+
+func moveCursorDown(i *cui.Gui, view *cui.View) error {
+	view.MoveCursor(0, 1, false)
 	return nil
 }
 
 func doSomething(gui *cui.Gui, view *cui.View) error {
-	return focusView(ViewsFeedResults)
+	return allListViews[ViewsFeedDetails].Focus()
 }
 
 func exitRightNow(gui *cui.Gui, view *cui.View) error {
@@ -93,22 +154,25 @@ func saveAndExit(i *cui.Gui, view *cui.View) error {
 	return ErrSave
 }
 
-func layoutManager(gui *cui.Gui) error {
+func getViewSize(gui *cui.Gui, viewName string) (int, int, int, int) {
 	viewWidth, viewHeight := gui.Size()
 	columnWidth := viewWidth / 3
 	columnHeight := viewHeight / 2
 
-	if _, err := gui.SetView(ViewsFeedSources, 0, 0, columnWidth-1, columnHeight-1); err != nil {
-		log.Fatal("Cannot update sites view", err)
+	switch viewName {
+	case ViewsFeedSources:
+		return 0, 0, columnWidth - 1, columnHeight - 1
+	case ViewsFeedResults:
+		return 0, columnHeight, viewWidth - 1, viewHeight - 1
+	case ViewsFeedDetails:
+		return columnWidth, 0, viewWidth - 1, columnHeight - 1
 	}
+	return 0, 0, 0, 0
+}
 
-	if _, err := gui.SetView(ViewsFeedDetails, columnWidth, 0, viewWidth-1, columnHeight-1); err != nil {
-		log.Fatal("Cannot update sites view", err)
+func layoutManager(gui *cui.Gui) error {
+	for _, listView := range allListViews {
+		listView.Draw()
 	}
-
-	if _, err := gui.SetView(ViewsFeedResults, 0, columnHeight, viewWidth-1, viewHeight-1); err != nil {
-		log.Fatal("Cannot update sites view", err)
-	}
-
 	return nil
 }

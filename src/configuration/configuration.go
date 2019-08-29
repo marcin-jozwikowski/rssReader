@@ -48,6 +48,15 @@ func fromFile(filename string) (Config, error) {
 	}
 }
 
+func (configuration *Config) AsList() []string {
+	var result []string
+	for _, fs := range configuration.Feeds {
+		result = append(result, fs.Url)
+	}
+
+	return result
+}
+
 func (configuration *Config) WriteToFile(filename string) error {
 	if file, err := json.MarshalIndent(configuration, "", " "); err != nil {
 		return fmt.Errorf("error while encoding Config: %v", err.Error())
