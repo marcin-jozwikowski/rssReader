@@ -17,10 +17,14 @@ var config *Config
 var ErrSave = errors.New("save")
 var allListViews = make(map[string]*ListView)
 
-type ListView struct {
-	items    []string
-	viewName string
+type CliView struct {
 	gui      *cui.Gui
+	viewName string
+}
+
+type ListView struct {
+	CliView
+	items []string
 }
 
 func (listView *ListView) Init(gui *cui.Gui, name string, items []string) {
