@@ -10,12 +10,14 @@ import (
 const ViewsFeedSources = "feedSources"
 const ViewsFeedDetails = "feedDetails"
 const ViewsFeedResults = "feedResults"
+const ViewHelp = "help"
 const ErrorsFailedAddingView = "Failed adding view"
 
 var err error
 var config *Config
 var ErrSave = errors.New("save")
-var allListViews = make(map[string]*ListView)
+var allViews = make(map[string]*ListView)
+var viewToFallBackTo = ViewsFeedSources
 
 type CliView struct {
 	gui      *cui.Gui
@@ -27,23 +29,29 @@ type ListView struct {
 	items []string
 }
 
-func (listView *ListView) Init(gui *cui.Gui, name string, items []string) {
+type InputView struct {
+	CliView
+	content string
+}
+
+func (listView *ListView) Init(gui *cui.Gui, name string, items []string, title string) {
 	listView.viewName = name
 	listView.items = items
 	listView.gui = gui
 
 	view, _ := listView.gui.SetView(name, 0, 0, 1, 1)
 	view.Clear()
+	view.Title = " " + title + " "
 
 	for _, item := range listView.items {
 		_, _ = fmt.Fprintln(view, item)
 	}
 
-	allListViews[name] = listView
+	allViews[name] = listView
 }
 
 func (listView *ListView) Draw() {
-	x0, y0, x1, y1 := getViewSize(listView.gui, listView.viewName)
+	x0, y0, x1, y1 := getViewDimensions(listView.gui, listView.viewName)
 	if _, err := listView.gui.SetView(listView.viewName, x0, y0, x1, y1); err != nil {
 		log.Fatal("Cannot update sites view", err)
 	}
@@ -86,12 +94,12 @@ func createCUI() bool {
 	gui.SetManagerFunc(layoutManager)
 
 	v := new(ListView)
-	v.Init(gui, ViewsFeedSources, config.AsList())
+	v.Init(gui, ViewsFeedSources, config.AsList(), "Sources")
 
 	v = new(ListView)
-	v.Init(gui, ViewsFeedDetails, []string{})
+	v.Init(gui, ViewsFeedDetails, []string{}, "Select source to view details")
 
-	_ = allListViews[ViewsFeedSources].Focus()
+	_ = allViews[ViewsFeedSources].Focus()
 
 	initAllKeyBindings(gui)
 
@@ -131,6 +139,17 @@ func initAllKeyBindings(gui *cui.Gui) {
 		log.Fatal("Failed to set keybindings")
 	}
 
+	// help
+	if err = gui.SetKeybinding(ViewHelp, cui.KeyCtrlH, cui.ModNone, closeHelp); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyCtrlH, cui.ModNone, showHelp); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlH, cui.ModNone, showHelp); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+
 	// general
 	if err = gui.SetKeybinding("", cui.KeyCtrlS, cui.ModNone, saveAndExit); err != nil {
 		log.Fatal("Failed to set keybindings")
@@ -143,16 +162,34 @@ func initAllKeyBindings(gui *cui.Gui) {
 	}
 }
 
+func closeHelp(gui *cui.Gui, view *cui.View) error {
+	_ = allViews[viewToFallBackTo].Focus()
+	return gui.DeleteView(ViewHelp)
+}
+
+func showHelp(gui *cui.Gui, view *cui.View) error {
+	viewToFallBackTo = view.Name()
+	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 2)
+	v, _ := gui.SetView(ViewHelp, x0, y0, x1, y1)
+	_, _ = gui.SetCurrentView(ViewHelp)
+	v.Clear()
+	v.Title = " Help (press Ctrl-H again to quit)"
+	_, _ = fmt.Fprintln(v, "Show help here")
+	_, _ = gui.SetCurrentView(ViewHelp)
+
+	return nil
+}
+
 func focusOnSources(gui *cui.Gui, view *cui.View) error {
-	allListViews[ViewsFeedDetails].ClearContent()
-	return allListViews[ViewsFeedSources].Focus()
+	allViews[ViewsFeedDetails].ClearContent()
+	return allViews[ViewsFeedSources].Focus()
 }
 
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 	_, selectedItem := view.Cursor()
 	selectedFeed := config.GetFeedAt(selectedItem)
 	v := new(ListView)
-	v.Init(gui, ViewsFeedDetails, selectedFeed.SearchPhrases)
+	v.Init(gui, ViewsFeedDetails, selectedFeed.SearchPhrases, selectedFeed.Url)
 	_ = v.Focus()
 
 	return nil
@@ -169,7 +206,7 @@ func moveCursorDown(i *cui.Gui, view *cui.View) error {
 }
 
 func doSomething(gui *cui.Gui, view *cui.View) error {
-	return allListViews[ViewsFeedDetails].Focus()
+	return allViews[ViewsFeedDetails].Focus()
 }
 
 func exitRightNow(gui *cui.Gui, view *cui.View) error {
@@ -180,7 +217,7 @@ func saveAndExit(i *cui.Gui, view *cui.View) error {
 	return ErrSave
 }
 
-func getViewSize(gui *cui.Gui, viewName string) (int, int, int, int) {
+func getViewDimensions(gui *cui.Gui, viewName string) (int, int, int, int) {
 	viewWidth, viewHeight := gui.Size()
 	columnWidth := viewWidth / 3
 	columnHeight := viewHeight / 2
@@ -196,8 +233,14 @@ func getViewSize(gui *cui.Gui, viewName string) (int, int, int, int) {
 	return 0, 0, 0, 0
 }
 
+func getCenteredViewDimensions(gui *cui.Gui, lines int) (int, int, int, int) {
+	viewWidth, viewHeight := gui.Size()
+	top := (viewHeight / 2) - (lines / 2)
+	return 10, top, viewWidth - 10, top + lines + 1
+}
+
 func layoutManager(gui *cui.Gui) error {
-	for _, listView := range allListViews {
+	for _, listView := range allViews {
 		listView.Draw()
 	}
 	return nil
