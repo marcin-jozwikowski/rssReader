@@ -29,6 +29,7 @@ func (listView *ListView) Init(gui *cui.Gui, name string, items []string) {
 	listView.gui = gui
 
 	view, _ := listView.gui.SetView(name, 0, 0, 1, 1)
+	view.Clear()
 
 	for _, item := range listView.items {
 		_, _ = fmt.Fprintln(view, item)
@@ -56,6 +57,11 @@ func (listView *ListView) Focus() error {
 		return nil
 	}
 	return nil
+}
+
+func (listView *ListView) ClearContent() {
+	v, _ := listView.gui.View(listView.viewName)
+	v.Clear()
 }
 
 func (configuration *Config) Edit() bool {
@@ -96,6 +102,7 @@ func createCUI() bool {
 }
 
 func initAllKeyBindings(gui *cui.Gui) {
+	// ViewsFeedSources
 	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
@@ -105,18 +112,26 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyEnter, cui.ModNone, editCurrentSource); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyArrowRight, cui.ModNone, editCurrentSource); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 
+	// ViewsFeedDetails
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowLeft, cui.ModNone, focusOnSources); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 
+	// general
 	if err = gui.SetKeybinding("", cui.KeyCtrlS, cui.ModNone, saveAndExit); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err = gui.SetKeybinding("", cui.KeyCtrlD, cui.ModNone, exitRightNow); err != nil {
+	if err = gui.SetKeybinding("", cui.KeyCtrlQ, cui.ModNone, exitRightNow); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 	if err = gui.SetKeybinding("", cui.KeyCtrlU, cui.ModNone, doSomething); err != nil {
@@ -124,9 +139,16 @@ func initAllKeyBindings(gui *cui.Gui) {
 	}
 }
 
+func focusOnSources(gui *cui.Gui, view *cui.View) error {
+	allListViews[ViewsFeedDetails].ClearContent()
+	return allListViews[ViewsFeedSources].Focus()
+}
+
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
+	_, selectedItem := view.Cursor()
+	selectedFeed := config.GetFeedAt(selectedItem)
 	v := new(ListView)
-	v.Init(gui, ViewsFeedDetails, []string{"asd", "dasfsda", "asd", "dasfsda", "asd", "dasfsda"})
+	v.Init(gui, ViewsFeedDetails, selectedFeed.SearchPhrases)
 	_ = v.Focus()
 
 	return nil
