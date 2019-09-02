@@ -5,6 +5,9 @@ import (
 	"fmt"
 	cui "github.com/jroimartin/gocui"
 	"log"
+	"math/rand"
+	"strconv"
+	"strings"
 )
 
 const ViewsFeedSources = "feedSources"
@@ -15,8 +18,10 @@ const ErrorsFailedAddingView = "Failed adding view"
 
 var err error
 var config *Config
+var editedFeed *FeedSource
 var ErrSave = errors.New("save")
 var allViews = make(map[string]*ListView)
+var currentInputPrompt *InputView
 var viewToFallBackTo = ViewsFeedSources
 
 type CliView struct {
@@ -31,7 +36,46 @@ type ListView struct {
 
 type InputView struct {
 	CliView
-	content string
+	content  string
+	callback func(content string) error
+}
+
+func (input *InputView) Init(gui *cui.Gui, content string, title string, callback func(content string) error) {
+	input.content = content
+	input.viewName = "input_" + strconv.Itoa(rand.Int())
+	input.callback = callback
+	input.gui = gui
+	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 1)
+	view, _ := input.gui.SetView(input.viewName, x0, y0, x1, y1)
+	view.Title = title
+	view.Editable = true
+
+	_, _ = gui.SetCurrentView(input.viewName)
+	_, _ = fmt.Fprint(view, content)
+
+	if err = gui.SetKeybinding(input.viewName, cui.KeyEnter, cui.ModNone, inputViewApply); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+
+	if err = gui.SetKeybinding(input.viewName, cui.KeyEsc, cui.ModNone, inputExit); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+
+	currentInputPrompt = input
+}
+
+func (input *InputView) Close() error {
+	currentInputPrompt = nil
+	input.gui.DeleteKeybindings(input.viewName)
+	return deleteNamedView(input.gui, input.viewName)
+}
+
+func inputExit(gui *cui.Gui, view *cui.View) error {
+	return currentInputPrompt.Close()
+}
+
+func inputViewApply(gui *cui.Gui, view *cui.View) error {
+	return currentInputPrompt.callback(strings.Trim(view.ViewBuffer(), "\n\t\r"))
 }
 
 func (listView *ListView) Init(gui *cui.Gui, name string, items []string, title string) {
@@ -57,7 +101,7 @@ func (listView *ListView) Draw() {
 	}
 }
 
-func (listView *ListView) Focus() error {
+func (listView *CliView) Focus() error {
 	v, err := listView.gui.View(listView.viewName)
 	if err != nil {
 		panic(err)
@@ -71,7 +115,7 @@ func (listView *ListView) Focus() error {
 	return nil
 }
 
-func (listView *ListView) ClearContent() {
+func (listView *CliView) ClearContent() {
 	v, _ := listView.gui.View(listView.viewName)
 	v.Clear()
 }
@@ -138,6 +182,9 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowLeft, cui.ModNone, focusOnSources); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyEnter, cui.ModNone, onEnterInDetails); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 
 	// help
 	if err = gui.SetKeybinding(ViewHelp, cui.KeyCtrlH, cui.ModNone, closeHelp); err != nil {
@@ -162,9 +209,40 @@ func initAllKeyBindings(gui *cui.Gui) {
 	}
 }
 
+func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
+	list := allViews[view.Name()]
+	_, y := view.Cursor()
+	if y < len(list.items) {
+		item := editedFeed.SearchPhrases[y]
+		viewToFallBackTo = view.Name()
+		namePrompt := new(InputView)
+		namePrompt.Init(gui, item, "Edit (Esc to cancel)", func(content string) error {
+			editedFeed.SearchPhrases[y] = content
+			e := deleteNamedView(currentInputPrompt.gui, currentInputPrompt.viewName)
+			if e != nil {
+				panic(e)
+			} else {
+				return nil
+			}
+		})
+		_ = namePrompt.Focus()
+	}
+
+	return nil
+}
+
 func closeHelp(gui *cui.Gui, view *cui.View) error {
+	return deleteNamedView(gui, ViewHelp)
+}
+
+func deleteNamedView(gui *cui.Gui, name string) error {
 	_ = allViews[viewToFallBackTo].Focus()
-	return gui.DeleteView(ViewHelp)
+	v, e := gui.View(name)
+	if e != nil {
+		panic(gui)
+	}
+	_, _ = fmt.Fprintln(v, name)
+	return gui.DeleteView(name)
 }
 
 func showHelp(gui *cui.Gui, view *cui.View) error {
@@ -187,9 +265,9 @@ func focusOnSources(gui *cui.Gui, view *cui.View) error {
 
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 	_, selectedItem := view.Cursor()
-	selectedFeed := config.GetFeedAt(selectedItem)
+	editedFeed = config.GetFeedAt(selectedItem)
 	v := new(ListView)
-	v.Init(gui, ViewsFeedDetails, selectedFeed.SearchPhrases, selectedFeed.Url)
+	v.Init(gui, ViewsFeedDetails, editedFeed.SearchPhrases, editedFeed.Url)
 	_ = v.Focus()
 
 	return nil
