@@ -235,7 +235,7 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 }
 
 func closeHelp(gui *cui.Gui, view *cui.View) error {
-	return deleteNamedView(gui, allViews[ViewHelp].view)
+	return deleteNamedView(gui, view)
 }
 
 func deleteNamedView(gui *cui.Gui, view *cui.View) error {
@@ -246,12 +246,28 @@ func deleteNamedView(gui *cui.Gui, view *cui.View) error {
 
 func showHelp(gui *cui.Gui, view *cui.View) error {
 	viewToFallBackTo = view.Name()
-	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 2)
+	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 16)
 	v, _ := gui.SetView(ViewHelp, x0, y0, x1, y1)
 	_, _ = gui.SetCurrentView(ViewHelp)
 	v.Clear()
 	v.Title = " Help (press Ctrl-H again to quit)"
-	_, _ = fmt.Fprintln(v, "Show help here")
+	_, _ = fmt.Fprintln(v, "All views")
+	_, _ = fmt.Fprintln(v, "  Use arrow keys to navigate each view")
+	_, _ = fmt.Fprintln(v, "  Ctrl+S - Save changes")
+	_, _ = fmt.Fprintln(v, "  Ctrl+Q - Discard changes and Quit")
+	_, _ = fmt.Fprintln(v, "")
+	_, _ = fmt.Fprintln(v, "Sources:")
+	_, _ = fmt.Fprintln(v, "  Enter - Edit selected feed source")
+	_, _ = fmt.Fprintln(v, "  Ctrl+A - Add new feed source")
+	_, _ = fmt.Fprintln(v, "  Ctrl+D - Delete selected feed source")
+	_, _ = fmt.Fprintln(v, "")
+	_, _ = fmt.Fprintln(v, "Source details:")
+	_, _ = fmt.Fprintln(v, "  Enter - Edit selected value")
+	_, _ = fmt.Fprintln(v, "  Ctrl+A - Add new SearchPhrase")
+	_, _ = fmt.Fprintln(v, "  Ctrl+D - Delete selected SearchPhrase/postProcessing")
+	_, _ = fmt.Fprintln(v, "  Ctrl+R - Reset counter")
+	_, _ = fmt.Fprintln(v, "  Ctrl+U - Edit URL")
+	_, _ = fmt.Fprintln(v, "")
 	_, _ = gui.SetCurrentView(ViewHelp)
 
 	return nil
