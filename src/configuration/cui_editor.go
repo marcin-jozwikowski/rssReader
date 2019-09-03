@@ -25,8 +25,8 @@ var currentInputPrompt *InputView
 var viewToFallBackTo = ViewsFeedSources
 
 type CliView struct {
-	gui      *cui.Gui
-	viewName string
+	gui  *cui.Gui
+	view *cui.View
 }
 
 type ListView struct {
@@ -36,38 +36,38 @@ type ListView struct {
 
 type InputView struct {
 	CliView
-	content  string
-	callback func(content string) error
+	content          string
+	onSubmitCallback func(content string) error
 }
 
-func (input *InputView) Init(gui *cui.Gui, content string, title string, callback func(content string) error) {
+func (input *InputView) Init(gui *cui.Gui, content string, title string, onSubmitCallback func(content string) error) {
 	input.content = content
-	input.viewName = "input_" + strconv.Itoa(rand.Int())
-	input.callback = callback
+	input.onSubmitCallback = onSubmitCallback
 	input.gui = gui
 	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 1)
-	view, _ := input.gui.SetView(input.viewName, x0, y0, x1, y1)
-	view.Title = title
-	view.Editable = true
+	input.view, _ = input.gui.SetView("input_"+strconv.Itoa(rand.Int()), x0, y0, x1, y1)
+	input.view.Title = title
+	input.view.Editable = true
 
-	_, _ = gui.SetCurrentView(input.viewName)
-	_, _ = fmt.Fprint(view, content)
+	_, _ = gui.SetCurrentView(input.view.Name())
+	_, _ = fmt.Fprint(input.view, content)
 
-	if err = gui.SetKeybinding(input.viewName, cui.KeyEnter, cui.ModNone, inputViewApply); err != nil {
+	if err = gui.SetKeybinding(input.view.Name(), cui.KeyEnter, cui.ModNone, inputViewApply); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 
-	if err = gui.SetKeybinding(input.viewName, cui.KeyEsc, cui.ModNone, inputExit); err != nil {
+	if err = gui.SetKeybinding(input.view.Name(), cui.KeyEsc, cui.ModNone, inputExit); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 
+	gui.Cursor = true
 	currentInputPrompt = input
 }
 
 func (input *InputView) Close() error {
 	currentInputPrompt = nil
-	input.gui.DeleteKeybindings(input.viewName)
-	return deleteNamedView(input.gui, input.viewName)
+	input.gui.DeleteKeybindings(input.view.Name())
+	return deleteNamedView(input.gui, input.view)
 }
 
 func inputExit(gui *cui.Gui, view *cui.View) error {
@@ -75,49 +75,38 @@ func inputExit(gui *cui.Gui, view *cui.View) error {
 }
 
 func inputViewApply(gui *cui.Gui, view *cui.View) error {
-	return currentInputPrompt.callback(strings.Trim(view.ViewBuffer(), "\n\t\r"))
+	return currentInputPrompt.onSubmitCallback(strings.Trim(view.ViewBuffer(), "\n\t\r"))
 }
 
 func (listView *ListView) Init(gui *cui.Gui, name string, items []string, title string) {
-	listView.viewName = name
 	listView.items = items
 	listView.gui = gui
 
-	view, _ := listView.gui.SetView(name, 0, 0, 1, 1)
-	view.Clear()
-	view.Title = " " + title + " "
+	listView.view, _ = listView.gui.SetView(name, 0, 0, 1, 1)
+	listView.view.Clear()
+	listView.view.Title = " " + title + " "
 
 	for _, item := range listView.items {
-		_, _ = fmt.Fprintln(view, item)
+		_, _ = fmt.Fprintln(listView.view, item)
 	}
 
 	allViews[name] = listView
 }
 
 func (listView *ListView) Draw() {
-	x0, y0, x1, y1 := getViewDimensions(listView.gui, listView.viewName)
-	if _, err := listView.gui.SetView(listView.viewName, x0, y0, x1, y1); err != nil {
+	x0, y0, x1, y1 := getViewDimensions(listView.gui, listView.view.Name())
+	if _, err := listView.gui.SetView(listView.view.Name(), x0, y0, x1, y1); err != nil {
 		log.Fatal("Cannot update sites view", err)
 	}
 }
 
 func (listView *CliView) Focus() error {
-	v, err := listView.gui.View(listView.viewName)
-	if err != nil {
-		panic(err)
-		return err
-	}
-	v.Highlight = true
-	if _, err = listView.gui.SetCurrentView(listView.viewName); err != nil {
+	listView.view.Highlight = true
+	if _, err = listView.gui.SetCurrentView(listView.view.Name()); err != nil {
 		panic(err)
 		return nil
 	}
 	return nil
-}
-
-func (listView *CliView) ClearContent() {
-	v, _ := listView.gui.View(listView.viewName)
-	v.Clear()
 }
 
 func (configuration *Config) Edit() bool {
@@ -218,7 +207,7 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 		namePrompt := new(InputView)
 		namePrompt.Init(gui, item, "Edit (Esc to cancel)", func(content string) error {
 			editedFeed.SearchPhrases[y] = content
-			e := deleteNamedView(currentInputPrompt.gui, currentInputPrompt.viewName)
+			e := deleteNamedView(currentInputPrompt.gui, currentInputPrompt.view)
 			if e != nil {
 				panic(e)
 			} else {
@@ -232,17 +221,13 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 }
 
 func closeHelp(gui *cui.Gui, view *cui.View) error {
-	return deleteNamedView(gui, ViewHelp)
+	return deleteNamedView(gui, allViews[ViewHelp].view)
 }
 
-func deleteNamedView(gui *cui.Gui, name string) error {
+func deleteNamedView(gui *cui.Gui, view *cui.View) error {
 	_ = allViews[viewToFallBackTo].Focus()
-	v, e := gui.View(name)
-	if e != nil {
-		panic(gui)
-	}
-	_, _ = fmt.Fprintln(v, name)
-	return gui.DeleteView(name)
+	gui.Cursor = false
+	return gui.DeleteView(view.Name())
 }
 
 func showHelp(gui *cui.Gui, view *cui.View) error {
@@ -259,12 +244,13 @@ func showHelp(gui *cui.Gui, view *cui.View) error {
 }
 
 func focusOnSources(gui *cui.Gui, view *cui.View) error {
-	allViews[ViewsFeedDetails].ClearContent()
+	allViews[ViewsFeedDetails].view.Clear()
 	return allViews[ViewsFeedSources].Focus()
 }
 
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 	_, selectedItem := view.Cursor()
+	_ = view.SetCursor(0, 0)
 	editedFeed = config.GetFeedAt(selectedItem)
 	v := new(ListView)
 	v.Init(gui, ViewsFeedDetails, editedFeed.SearchPhrases, editedFeed.Url)
