@@ -29,11 +29,51 @@ type CliView struct {
 	view *cui.View
 }
 
+// LIST VIEW
 type ListView struct {
 	CliView
-	items []string
+	items     []string
+	DrawItems func()
 }
 
+func (listView *ListView) Init(gui *cui.Gui, name string, items []string, title string) {
+	listView.items = items
+	listView.gui = gui
+
+	listView.view, _ = listView.gui.SetView(name, 0, 0, 1, 1)
+	listView.view.Clear()
+	listView.view.Title = " " + title + " "
+
+	allViews[name] = listView
+}
+
+func (listView *ListView) Draw() {
+	x0, y0, x1, y1 := getViewDimensions(listView.gui, listView.view.Name())
+	listView.view, err = listView.gui.SetView(listView.view.Name(), x0, y0, x1, y1)
+	if err != nil {
+		log.Fatal("Cannot update sites view", err)
+	}
+	listView.view.Clear()
+
+	if listView.DrawItems != nil {
+		listView.DrawItems()
+	} else {
+		for _, item := range listView.items {
+			_, _ = fmt.Fprintln(listView.view, item)
+		}
+	}
+}
+
+func (listView *CliView) Focus() error {
+	listView.view.Highlight = true
+	if _, err = listView.gui.SetCurrentView(listView.view.Name()); err != nil {
+		panic(err)
+		return nil
+	}
+	return nil
+}
+
+// INPUT VIEW
 type InputView struct {
 	CliView
 	content          string
@@ -62,6 +102,7 @@ func (input *InputView) Init(gui *cui.Gui, content string, title string, onSubmi
 
 	gui.Cursor = true
 	currentInputPrompt = input
+	_ = input.Focus()
 }
 
 func (input *InputView) Close() error {
@@ -76,37 +117,6 @@ func inputExit(gui *cui.Gui, view *cui.View) error {
 
 func inputViewApply(gui *cui.Gui, view *cui.View) error {
 	return currentInputPrompt.onSubmitCallback(strings.Trim(view.ViewBuffer(), "\n\t\r"))
-}
-
-func (listView *ListView) Init(gui *cui.Gui, name string, items []string, title string) {
-	listView.items = items
-	listView.gui = gui
-
-	listView.view, _ = listView.gui.SetView(name, 0, 0, 1, 1)
-	listView.view.Clear()
-	listView.view.Title = " " + title + " "
-
-	for _, item := range listView.items {
-		_, _ = fmt.Fprintln(listView.view, item)
-	}
-
-	allViews[name] = listView
-}
-
-func (listView *ListView) Draw() {
-	x0, y0, x1, y1 := getViewDimensions(listView.gui, listView.view.Name())
-	if _, err := listView.gui.SetView(listView.view.Name(), x0, y0, x1, y1); err != nil {
-		log.Fatal("Cannot update sites view", err)
-	}
-}
-
-func (listView *CliView) Focus() error {
-	listView.view.Highlight = true
-	if _, err = listView.gui.SetCurrentView(listView.view.Name()); err != nil {
-		panic(err)
-		return nil
-	}
-	return nil
 }
 
 func (configuration *Config) Edit() bool {
@@ -201,20 +211,24 @@ func initAllKeyBindings(gui *cui.Gui) {
 func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 	list := allViews[view.Name()]
 	_, y := view.Cursor()
-	if y < len(list.items) {
+	itemCount := len(list.items)
+	viewToFallBackTo = view.Name()
+	if y < itemCount {
 		item := editedFeed.SearchPhrases[y]
-		viewToFallBackTo = view.Name()
 		namePrompt := new(InputView)
 		namePrompt.Init(gui, item, "Edit (Esc to cancel)", func(content string) error {
 			editedFeed.SearchPhrases[y] = content
-			e := deleteNamedView(currentInputPrompt.gui, currentInputPrompt.view)
-			if e != nil {
-				panic(e)
-			} else {
-				return nil
-			}
+			allViews[ViewsFeedDetails].Draw()
+			_ = deleteNamedView(currentInputPrompt.gui, currentInputPrompt.view)
+			return nil
 		})
-		_ = namePrompt.Focus()
+	} else if y == (itemCount + 1) {
+		v := new(InputView)
+		v.Init(gui, editedFeed.PostProcess, "Edit (Esc to cancel)", func(content string) error {
+			editedFeed.PostProcess = content
+			_ = deleteNamedView(currentInputPrompt.gui, currentInputPrompt.view)
+			return nil
+		})
 	}
 
 	return nil
@@ -250,10 +264,16 @@ func focusOnSources(gui *cui.Gui, view *cui.View) error {
 
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 	_, selectedItem := view.Cursor()
-	_ = view.SetCursor(0, 0)
 	editedFeed = config.GetFeedAt(selectedItem)
 	v := new(ListView)
 	v.Init(gui, ViewsFeedDetails, editedFeed.SearchPhrases, editedFeed.Url)
+	v.DrawItems = func() {
+		for _, item := range v.items {
+			_, _ = fmt.Fprintln(v.view, item)
+		}
+		_, _ = fmt.Fprintln(v.view, "")
+		_, _ = fmt.Fprintln(v.view, "Edit Post-processing")
+	}
 	_ = v.Focus()
 
 	return nil
@@ -283,7 +303,7 @@ func saveAndExit(i *cui.Gui, view *cui.View) error {
 
 func getViewDimensions(gui *cui.Gui, viewName string) (int, int, int, int) {
 	viewWidth, viewHeight := gui.Size()
-	columnWidth := viewWidth / 3
+	columnWidth := 2 * viewWidth / 3
 	columnHeight := viewHeight / 2
 
 	switch viewName {
