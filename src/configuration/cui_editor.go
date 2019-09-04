@@ -86,7 +86,7 @@ func (input *InputView) Init(gui *cui.Gui, content string, title string, onSubmi
 	input.gui = gui
 	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 1)
 	input.view, _ = input.gui.SetView("input_"+strconv.Itoa(rand.Int()), x0, y0, x1, y1)
-	input.view.Title = title
+	input.view.Title = title + " (Ctrl+Z to cancel)"
 	input.view.Editable = true
 
 	_, _ = gui.SetCurrentView(input.view.Name())
@@ -96,7 +96,7 @@ func (input *InputView) Init(gui *cui.Gui, content string, title string, onSubmi
 		log.Fatal("Failed to set keybindings")
 	}
 
-	if err = gui.SetKeybinding(input.view.Name(), cui.KeyEsc, cui.ModNone, inputExit); err != nil {
+	if err = gui.SetKeybinding(input.view.Name(), cui.KeyCtrlZ, cui.ModNone, inputExit); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 
@@ -116,7 +116,8 @@ func inputExit(gui *cui.Gui, view *cui.View) error {
 }
 
 func inputViewApply(gui *cui.Gui, view *cui.View) error {
-	return currentInputPrompt.onSubmitCallback(strings.Trim(view.ViewBuffer(), "\n\t\r"))
+	_ = currentInputPrompt.onSubmitCallback(strings.Trim(view.ViewBuffer(), "\n\t\r"))
+	return currentInputPrompt.Close()
 }
 
 func (configuration *Config) Edit() bool {
@@ -141,6 +142,7 @@ func createCUI() bool {
 
 	v = new(ListView)
 	v.Init(gui, ViewsFeedDetails, []string{}, "Select source to view details")
+	v.DrawItems = viewFeedDetailsDrawItems
 
 	_ = allViews[ViewsFeedSources].Focus()
 
@@ -184,6 +186,9 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyEnter, cui.ModNone, onEnterInDetails); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlA, cui.ModNone, addSearchPhrase); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 
 	// help
 	if err = gui.SetKeybinding(ViewHelp, cui.KeyCtrlH, cui.ModNone, closeHelp); err != nil {
@@ -208,25 +213,32 @@ func initAllKeyBindings(gui *cui.Gui) {
 	}
 }
 
+func addSearchPhrase(gui *cui.Gui, view *cui.View) error {
+	namePrompt := new(InputView)
+	namePrompt.Init(gui, "", "Add SearchPhrase", func(content string) error {
+		editedFeed.AddSearchPhrase(content)
+		allViews[ViewsFeedDetails].Draw()
+		return nil
+	})
+	return nil
+}
+
 func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
-	list := allViews[view.Name()]
 	_, y := view.Cursor()
-	itemCount := len(list.items)
+	itemCount := len(editedFeed.SearchPhrases)
 	viewToFallBackTo = view.Name()
 	if y < itemCount {
 		item := editedFeed.SearchPhrases[y]
 		namePrompt := new(InputView)
-		namePrompt.Init(gui, item, "Edit (Esc to cancel)", func(content string) error {
+		namePrompt.Init(gui, item, "Edit", func(content string) error {
 			editedFeed.SearchPhrases[y] = content
 			allViews[ViewsFeedDetails].Draw()
-			_ = deleteNamedView(currentInputPrompt.gui, currentInputPrompt.view)
 			return nil
 		})
 	} else if y == (itemCount + 1) {
 		v := new(InputView)
-		v.Init(gui, editedFeed.PostProcess, "Edit (Esc to cancel)", func(content string) error {
+		v.Init(gui, editedFeed.PostProcess, "Edit PostProcess", func(content string) error {
 			editedFeed.PostProcess = content
-			_ = deleteNamedView(currentInputPrompt.gui, currentInputPrompt.view)
 			return nil
 		})
 	}
@@ -250,23 +262,23 @@ func showHelp(gui *cui.Gui, view *cui.View) error {
 	v, _ := gui.SetView(ViewHelp, x0, y0, x1, y1)
 	_, _ = gui.SetCurrentView(ViewHelp)
 	v.Clear()
-	v.Title = " Help (press Ctrl-H again to quit)"
-	_, _ = fmt.Fprintln(v, "All views")
-	_, _ = fmt.Fprintln(v, "  Use arrow keys to navigate each view")
-	_, _ = fmt.Fprintln(v, "  Ctrl+S - Save changes")
-	_, _ = fmt.Fprintln(v, "  Ctrl+Q - Discard changes and Quit")
+	v.Title = " Help (press Ctrl-H again to quit) "
+	_, _ = fmt.Fprintln(v, " All views")
+	_, _ = fmt.Fprintln(v, "   Use arrow keys to navigate each view")
+	_, _ = fmt.Fprintln(v, "   Ctrl+S - Save changes")
+	_, _ = fmt.Fprintln(v, "   Ctrl+Q - Discard changes and Quit")
 	_, _ = fmt.Fprintln(v, "")
-	_, _ = fmt.Fprintln(v, "Sources:")
-	_, _ = fmt.Fprintln(v, "  Enter - Edit selected feed source")
-	_, _ = fmt.Fprintln(v, "  Ctrl+A - Add new feed source")
-	_, _ = fmt.Fprintln(v, "  Ctrl+D - Delete selected feed source")
+	_, _ = fmt.Fprintln(v, " Sources:")
+	_, _ = fmt.Fprintln(v, "   Enter - Edit selected feed source")
+	_, _ = fmt.Fprintln(v, "   Ctrl+A - Add new feed source")
+	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected feed source")
 	_, _ = fmt.Fprintln(v, "")
-	_, _ = fmt.Fprintln(v, "Source details:")
-	_, _ = fmt.Fprintln(v, "  Enter - Edit selected value")
-	_, _ = fmt.Fprintln(v, "  Ctrl+A - Add new SearchPhrase")
-	_, _ = fmt.Fprintln(v, "  Ctrl+D - Delete selected SearchPhrase/postProcessing")
-	_, _ = fmt.Fprintln(v, "  Ctrl+R - Reset counter")
-	_, _ = fmt.Fprintln(v, "  Ctrl+U - Edit URL")
+	_, _ = fmt.Fprintln(v, " Source details:")
+	_, _ = fmt.Fprintln(v, "   Enter - Edit selected value")
+	_, _ = fmt.Fprintln(v, "   Ctrl+A - Add new SearchPhrase")
+	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected SearchPhrase/postProcessing")
+	_, _ = fmt.Fprintln(v, "   Ctrl+R - Reset counter")
+	_, _ = fmt.Fprintln(v, "   Ctrl+U - Edit URL")
 	_, _ = fmt.Fprintln(v, "")
 	_, _ = gui.SetCurrentView(ViewHelp)
 
@@ -281,18 +293,18 @@ func focusOnSources(gui *cui.Gui, view *cui.View) error {
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 	_, selectedItem := view.Cursor()
 	editedFeed = config.GetFeedAt(selectedItem)
-	v := new(ListView)
-	v.Init(gui, ViewsFeedDetails, editedFeed.SearchPhrases, editedFeed.Url)
-	v.DrawItems = func() {
-		for _, item := range v.items {
-			_, _ = fmt.Fprintln(v.view, item)
-		}
-		_, _ = fmt.Fprintln(v.view, "")
-		_, _ = fmt.Fprintln(v.view, "Edit Post-processing")
-	}
-	_ = v.Focus()
+	allViews[ViewsFeedDetails].Draw()
+	return allViews[ViewsFeedDetails].Focus()
+}
 
-	return nil
+func viewFeedDetailsDrawItems() {
+	if editedFeed != nil {
+		for _, item := range editedFeed.SearchPhrases {
+			_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, item)
+		}
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "")
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
+	}
 }
 
 func moveCursorUp(i *cui.Gui, view *cui.View) error {
