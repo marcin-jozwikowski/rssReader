@@ -64,9 +64,9 @@ func (listView *ListView) Draw() {
 	}
 }
 
-func (listView *CliView) Focus() error {
-	listView.view.Highlight = true
-	if _, err = listView.gui.SetCurrentView(listView.view.Name()); err != nil {
+func (view *CliView) Focus() error {
+	view.view.Highlight = true
+	if _, err = view.gui.SetCurrentView(view.view.Name()); err != nil {
 		panic(err)
 		return nil
 	}
@@ -81,12 +81,12 @@ type InputView struct {
 }
 
 func (input *InputView) Init(gui *cui.Gui, content string, title string, onSubmitCallback func(content string) error) {
-	input.content = content
+	input.content = strings.Trim(content, "\n\t\r")
 	input.onSubmitCallback = onSubmitCallback
 	input.gui = gui
 	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 1)
 	input.view, _ = input.gui.SetView("input_"+strconv.Itoa(rand.Int()), x0, y0, x1, y1)
-	input.view.Title = title + " (Ctrl+Z to cancel)"
+	input.view.Title = " " + title + " (Ctrl+Z to cancel) "
 	input.view.Editable = true
 
 	_, _ = gui.SetCurrentView(input.view.Name())
@@ -139,6 +139,7 @@ func createCUI() bool {
 
 	v := new(ListView)
 	v.Init(gui, ViewsFeedSources, config.AsList(), "Sources")
+	v.DrawItems = viewFeedSourceDrawItems
 
 	v = new(ListView)
 	v.Init(gui, ViewsFeedDetails, []string{}, "Select source to view details")
@@ -172,6 +173,12 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyArrowRight, cui.ModNone, editCurrentSource); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyCtrlA, cui.ModNone, addFeedSource); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyCtrlD, cui.ModNone, removeFeedSource); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 
 	// ViewsFeedDetails
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
@@ -187,6 +194,15 @@ func initAllKeyBindings(gui *cui.Gui) {
 		log.Fatal("Failed to set keybindings")
 	}
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlA, cui.ModNone, addSearchPhrase); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlD, cui.ModNone, removeSearchPhrase); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlR, cui.ModNone, resetCounter); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlU, cui.ModNone, editURL); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 
@@ -208,9 +224,55 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding("", cui.KeyCtrlQ, cui.ModNone, exitRightNow); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err = gui.SetKeybinding("", cui.KeyCtrlU, cui.ModNone, doSomething); err != nil {
-		log.Fatal("Failed to set keybindings")
+}
+
+func removeFeedSource(gui *cui.Gui, view *cui.View) error {
+	_, y := view.Cursor()
+	if y < config.CountFeeds() {
+		_, _ = fmt.Fprintln(view, y)
+		config.DeleteFeetAt(y)
+		allViews[ViewsFeedSources].Draw()
 	}
+	return nil
+}
+
+func addFeedSource(gui *cui.Gui, view *cui.View) error {
+	namePrompt := new(InputView)
+	namePrompt.Init(gui, "", "Add Feed Source URL", func(content string) error {
+		config.AddFeed(content)
+		allViews[ViewsFeedSources].Draw()
+		return nil
+	})
+	return nil
+}
+
+func editURL(gui *cui.Gui, view *cui.View) error {
+	viewToFallBackTo = view.Name()
+	urlPrompt := new(InputView)
+	urlPrompt.Init(gui, editedFeed.Url, "Edit Feed URL", func(content string) error {
+		editedFeed.Url = content
+		allViews[ViewsFeedSources].Draw()
+		allViews[ViewsFeedDetails].Draw()
+		return nil
+	})
+	return nil
+}
+
+func resetCounter(gui *cui.Gui, view *cui.View) error {
+	editedFeed.ResetMaxChecked()
+	return nil
+}
+
+func removeSearchPhrase(gui *cui.Gui, view *cui.View) error {
+	_, y := view.Cursor()
+	itemCount := len(editedFeed.SearchPhrases)
+	if y < itemCount {
+		editedFeed.DeleteSearchPhraseAt(y + 1)
+	} else if y == (itemCount + 1) {
+		editedFeed.PostProcess = ""
+	}
+
+	return nil
 }
 
 func addSearchPhrase(gui *cui.Gui, view *cui.View) error {
@@ -302,8 +364,14 @@ func viewFeedDetailsDrawItems() {
 		for _, item := range editedFeed.SearchPhrases {
 			_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, item)
 		}
-		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "")
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, " ")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
+	}
+}
+
+func viewFeedSourceDrawItems()  {
+	for _, item := range config.Feeds {
+		_, _ = fmt.Fprintln(allViews[ViewsFeedSources].view, item.Url)
 	}
 }
 
@@ -315,10 +383,6 @@ func moveCursorUp(i *cui.Gui, view *cui.View) error {
 func moveCursorDown(i *cui.Gui, view *cui.View) error {
 	view.MoveCursor(0, 1, false)
 	return nil
-}
-
-func doSomething(gui *cui.Gui, view *cui.View) error {
-	return allViews[ViewsFeedDetails].Focus()
 }
 
 func exitRightNow(gui *cui.Gui, view *cui.View) error {
