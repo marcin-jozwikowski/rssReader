@@ -173,7 +173,7 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyArrowRight, cui.ModNone, editCurrentSource); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyCtrlA, cui.ModNone, addFeedSource); err != nil {
+	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyCtrlN, cui.ModNone, addFeedSource); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 	if err = gui.SetKeybinding(ViewsFeedSources, cui.KeyCtrlD, cui.ModNone, removeFeedSource); err != nil {
@@ -193,7 +193,7 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyEnter, cui.ModNone, onEnterInDetails); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlA, cui.ModNone, addSearchPhrase); err != nil {
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlN, cui.ModNone, addSearchPhrase); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlD, cui.ModNone, removeSearchPhrase); err != nil {
@@ -239,9 +239,12 @@ func removeFeedSource(gui *cui.Gui, view *cui.View) error {
 func addFeedSource(gui *cui.Gui, view *cui.View) error {
 	namePrompt := new(InputView)
 	namePrompt.Init(gui, "", "Add Feed Source URL", func(content string) error {
+		sources := len(config.Feeds)
 		config.AddFeed(content)
 		allViews[ViewsFeedSources].Draw()
-		return nil
+		_ = view.SetCursor(0, sources)
+		viewToFallBackTo = ViewsFeedDetails
+		return editCurrentSource(gui, view)
 	})
 	return nil
 }
@@ -329,19 +332,18 @@ func showHelp(gui *cui.Gui, view *cui.View) error {
 	_, _ = fmt.Fprintln(v, "   Use arrow keys to navigate each view")
 	_, _ = fmt.Fprintln(v, "   Ctrl+S - Save changes")
 	_, _ = fmt.Fprintln(v, "   Ctrl+Q - Discard changes and Quit")
-	_, _ = fmt.Fprintln(v, "")
+	_, _ = fmt.Fprintln(v, " ")
 	_, _ = fmt.Fprintln(v, " Sources:")
 	_, _ = fmt.Fprintln(v, "   Enter - Edit selected feed source")
-	_, _ = fmt.Fprintln(v, "   Ctrl+A - Add new feed source")
+	_, _ = fmt.Fprintln(v, "   Ctrl+N - Add new feed source")
 	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected feed source")
-	_, _ = fmt.Fprintln(v, "")
+	_, _ = fmt.Fprintln(v, " ")
 	_, _ = fmt.Fprintln(v, " Source details:")
 	_, _ = fmt.Fprintln(v, "   Enter - Edit selected value")
-	_, _ = fmt.Fprintln(v, "   Ctrl+A - Add new SearchPhrase")
+	_, _ = fmt.Fprintln(v, "   Ctrl+N - Add new SearchPhrase")
 	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected SearchPhrase/postProcessing")
 	_, _ = fmt.Fprintln(v, "   Ctrl+R - Reset counter")
 	_, _ = fmt.Fprintln(v, "   Ctrl+U - Edit URL")
-	_, _ = fmt.Fprintln(v, "")
 	_, _ = gui.SetCurrentView(ViewHelp)
 
 	return nil
