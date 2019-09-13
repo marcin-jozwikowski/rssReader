@@ -1,4 +1,4 @@
-package configuration
+package feed
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const ViewsFeedSources = "feedSources"
@@ -145,6 +146,9 @@ func createCUI() bool {
 	v.Init(gui, ViewsFeedDetails, []string{}, "Select source to view details")
 	v.DrawItems = viewFeedDetailsDrawItems
 
+	v = new(ListView)
+	v.Init(gui, ViewsFeedResults, []string{}, "Results")
+
 	_ = allViews[ViewsFeedSources].Focus()
 
 	initAllKeyBindings(gui)
@@ -205,6 +209,9 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlU, cui.ModNone, editURL); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err = gui.SetKeybinding(ViewsFeedDetails, cui.KeyCtrlG, cui.ModNone, getCurrentSourceResult); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 
 	// help
 	if err = gui.SetKeybinding(ViewHelp, cui.KeyCtrlH, cui.ModNone, closeHelp); err != nil {
@@ -224,6 +231,25 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err = gui.SetKeybinding("", cui.KeyCtrlQ, cui.ModNone, exitRightNow); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+}
+
+func getCurrentSourceResult(gui *cui.Gui, view *cui.View) error {
+	var waitGroup sync.WaitGroup
+	results := make(chan ResultItem, 20)
+	waitGroup.Add(1)
+	readOneFeed(editedFeed, &waitGroup, results)
+	waitGroup.Wait()
+	close(results)
+
+	for {
+		returnItem, hasMore := <-results
+		if !hasMore {
+			break
+		}
+		_, _ = fmt.Fprintln(allViews[ViewsFeedResults].view, returnItem.Identify())
+	}
+
+	return nil
 }
 
 func removeFeedSource(gui *cui.Gui, view *cui.View) error {
@@ -340,6 +366,7 @@ func showHelp(gui *cui.Gui, view *cui.View) error {
 	_, _ = fmt.Fprintln(v, " ")
 	_, _ = fmt.Fprintln(v, " Source details:")
 	_, _ = fmt.Fprintln(v, "   Enter - Edit selected value")
+	_, _ = fmt.Fprintln(v, "   Ctrl+G - Get results from this source")
 	_, _ = fmt.Fprintln(v, "   Ctrl+N - Add new SearchPhrase")
 	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected SearchPhrase/postProcessing")
 	_, _ = fmt.Fprintln(v, "   Ctrl+R - Reset counter")

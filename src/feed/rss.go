@@ -6,7 +6,6 @@ import (
 	"log"
 	"regexp"
 	"rssReader/src/cli"
-	"rssReader/src/configuration"
 	"strings"
 	"sync"
 )
@@ -18,7 +17,7 @@ type Rss struct {
 
 type ResultItem struct {
 	Item       Item
-	FeedSource *configuration.FeedSource
+	FeedSource *FeedSource
 }
 
 func (item *ResultItem) Identify() string {
@@ -36,7 +35,7 @@ func (item *ResultItem) Identify() string {
 	return item.Item.Identify()
 }
 
-func Read(config *configuration.Config) {
+func Read(config *Config) {
 	var waitGroup sync.WaitGroup
 	results := make(chan ResultItem, config.CountFeeds()*20)
 
@@ -57,7 +56,7 @@ func Read(config *configuration.Config) {
 	}
 }
 
-func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup, results chan ResultItem) {
+func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan ResultItem) {
 	if cli.IsVerboseDebug() {
 		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
@@ -92,7 +91,7 @@ func getRSSFeed(channelUrl string) *Rss {
 	return nil
 }
 
-func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
+func (rss *Rss) filterOut(feedSource *FeedSource) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
@@ -127,7 +126,7 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 	}
 }
 
-func (rss *Rss) WriteAllItemsToChannel(results chan ResultItem, configFeed *configuration.FeedSource) {
+func (rss *Rss) WriteAllItemsToChannel(results chan ResultItem, configFeed *FeedSource) {
 	for _, item := range rss.Channel.GetAllItems() {
 		results <- ResultItem{Item: item, FeedSource: configFeed}
 	}

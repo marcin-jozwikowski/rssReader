@@ -1,4 +1,4 @@
-package configuration
+package feed
 
 import (
 	"encoding/json"
