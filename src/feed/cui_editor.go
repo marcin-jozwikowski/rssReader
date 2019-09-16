@@ -65,6 +65,16 @@ func (listView *ListView) Draw() {
 	}
 }
 
+func (listView *ListView) AddItem(item string) {
+	listView.items = append(listView.items, item)
+	listView.Draw()
+}
+
+func (listView *ListView) ResetItems() {
+	listView.items = []string{}
+	listView.Draw()
+}
+
 func (view *CliView) Focus() error {
 	view.view.Highlight = true
 	if _, err = view.gui.SetCurrentView(view.view.Name()); err != nil {
@@ -148,6 +158,7 @@ func createCUI() bool {
 
 	v = new(ListView)
 	v.Init(gui, ViewsFeedResults, []string{}, "Results")
+	v.view.Wrap = true
 
 	_ = allViews[ViewsFeedSources].Focus()
 
@@ -234,19 +245,23 @@ func initAllKeyBindings(gui *cui.Gui) {
 }
 
 func getCurrentSourceResult(gui *cui.Gui, view *cui.View) error {
+	resultsView := allViews[ViewsFeedResults]
+	resultsView.ResetItems()
+	resultsView.AddItem("Running...")
 	var waitGroup sync.WaitGroup
 	results := make(chan ResultItem, 20)
 	waitGroup.Add(1)
-	readOneFeed(editedFeed, &waitGroup, results)
+	go readOneFeed(editedFeed, &waitGroup, results)
 	waitGroup.Wait()
 	close(results)
 
 	for {
 		returnItem, hasMore := <-results
 		if !hasMore {
+			resultsView.AddItem("Finished")
 			break
 		}
-		_, _ = fmt.Fprintln(allViews[ViewsFeedResults].view, returnItem.Identify())
+		resultsView.AddItem(returnItem.Identify())
 	}
 
 	return nil
@@ -398,7 +413,7 @@ func viewFeedDetailsDrawItems() {
 	}
 }
 
-func viewFeedSourceDrawItems()  {
+func viewFeedSourceDrawItems() {
 	for _, item := range config.Feeds {
 		_, _ = fmt.Fprintln(allViews[ViewsFeedSources].view, item.Url)
 	}
