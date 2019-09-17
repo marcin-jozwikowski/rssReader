@@ -22,17 +22,14 @@ type ResultItem struct {
 
 func (item *ResultItem) Identify() string {
 	if len(item.FeedSource.PostProcess) > 0 {
-		r := regexp.MustCompile(item.FeedSource.PostProcess)
-		if fullContent, er := GetURLReader().GetContent(item.Item.Guid); er == nil {
-			test := string(fullContent)
-			postProcessed := r.FindAllString(test, -1)
-			if len(postProcessed) > 0 {
-				item.Item.Guid = postProcessed[0]
-			}
-		}
+		item.ApplyPostProcess()
 	}
-
 	return item.Item.Identify()
+}
+
+func (item *ResultItem) ApplyPostProcess() {
+	r := regexp.MustCompile(item.FeedSource.PostProcess)
+	item.Item.ApplyPostProcessRegex(r)
 }
 
 func Read(config *Config) {
@@ -114,7 +111,9 @@ func (rss *Rss) filterOut(feedSource *FeedSource) {
 			} else {
 				rss.Channel.RemoveItem(*testItem)
 			}
-			feedSource.SetMaxChecked(testItemID)
+			if testItemID > feedSource.MaxChecked {
+				feedSource.SetMaxChecked(testItemID)
+			}
 		} else {
 			if cli.IsVerboseDebug() {
 				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, feedSource.MaxChecked))
