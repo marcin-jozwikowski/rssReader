@@ -98,6 +98,9 @@ func (rss *Rss) filterOut(feedSource *FeedSource) {
 		testItem := rss.Channel.GetItemAt(testItemPosition)
 		testItemID, _ := testItem.GetID()
 		if maxChecked < testItemID {
+			if testItemID > feedSource.MaxChecked {
+				feedSource.SetMaxChecked(testItemID)
+			}
 			// if current itemID is greater than last checked
 			if cli.IsVerboseDebug() {
 				fmt.Println("Checking item: " + testItem.Title)
@@ -110,9 +113,6 @@ func (rss *Rss) filterOut(feedSource *FeedSource) {
 				continue
 			} else {
 				rss.Channel.RemoveItem(*testItem)
-			}
-			if testItemID > feedSource.MaxChecked {
-				feedSource.SetMaxChecked(testItemID)
 			}
 		} else {
 			if cli.IsVerboseDebug() {
