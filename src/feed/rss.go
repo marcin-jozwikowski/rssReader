@@ -6,7 +6,6 @@ import (
 	"log"
 	"regexp"
 	"rssReader/src/cli"
-	"rssReader/src/configuration"
 	"strings"
 	"sync"
 )
@@ -18,25 +17,22 @@ type Rss struct {
 
 type ResultItem struct {
 	Item       Item
-	FeedSource *configuration.FeedSource
+	FeedSource *FeedSource
 }
 
 func (item *ResultItem) Identify() string {
 	if len(item.FeedSource.PostProcess) > 0 {
-		r := regexp.MustCompile(item.FeedSource.PostProcess)
-		if fullContent, er := GetURLReader().GetContent(item.Item.Guid); er == nil {
-			test := string(fullContent)
-			postProcessed := r.FindAllString(test, -1)
-			if len(postProcessed) > 0 {
-				item.Item.Guid = postProcessed[0]
-			}
-		}
+		item.ApplyPostProcess()
 	}
-
 	return item.Item.Identify()
 }
 
-func Read(config *configuration.Config) {
+func (item *ResultItem) ApplyPostProcess() {
+	r := regexp.MustCompile(item.FeedSource.PostProcess)
+	item.Item.ApplyPostProcessRegex(r)
+}
+
+func Read(config *Config) {
 	var waitGroup sync.WaitGroup
 	results := make(chan ResultItem, config.CountFeeds()*20)
 
@@ -57,7 +53,7 @@ func Read(config *configuration.Config) {
 	}
 }
 
-func readOneFeed(configFeed *configuration.FeedSource, waitGroup *sync.WaitGroup, results chan ResultItem) {
+func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan ResultItem) {
 	if cli.IsVerboseDebug() {
 		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
@@ -92,7 +88,7 @@ func getRSSFeed(channelUrl string) *Rss {
 	return nil
 }
 
-func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
+func (rss *Rss) filterOut(feedSource *FeedSource) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Checking against: " + strings.Join(feedSource.SearchPhrases, " | "))
 	}
@@ -101,7 +97,10 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 		// for each found RSS item:
 		testItem := rss.Channel.GetItemAt(testItemPosition)
 		testItemID, _ := testItem.GetID()
-		if maxChecked < testItemID {
+		if testItemID > feedSource.MaxChecked {
+			if testItemID > maxChecked {
+				maxChecked = testItemID
+			}
 			// if current itemID is greater than last checked
 			if cli.IsVerboseDebug() {
 				fmt.Println("Checking item: " + testItem.Title)
@@ -115,7 +114,6 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 			} else {
 				rss.Channel.RemoveItem(*testItem)
 			}
-			feedSource.SetMaxChecked(testItemID)
 		} else {
 			if cli.IsVerboseDebug() {
 				fmt.Println(fmt.Sprintf("Item ID of %d is not newer than max %d", testItemID, feedSource.MaxChecked))
@@ -125,9 +123,10 @@ func (rss *Rss) filterOut(feedSource *configuration.FeedSource) {
 			break
 		}
 	}
+	feedSource.SetMaxChecked(maxChecked)
 }
 
-func (rss *Rss) WriteAllItemsToChannel(results chan ResultItem, configFeed *configuration.FeedSource) {
+func (rss *Rss) WriteAllItemsToChannel(results chan ResultItem, configFeed *FeedSource) {
 	for _, item := range rss.Channel.GetAllItems() {
 		results <- ResultItem{Item: item, FeedSource: configFeed}
 	}
