@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"rssReader/src/cli"
-	"rssReader/src/configuration"
 	"rssReader/src/feed"
 )
 
 func main() {
-	config, configErr := configuration.ReadConfigFromFile(*cli.ConfigFileName)
+	config, configErr := feed.ReadConfigFromFile(*cli.ConfigFileName)
 	if configErr != nil {
 		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())

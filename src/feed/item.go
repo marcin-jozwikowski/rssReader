@@ -10,16 +10,21 @@ import (
 )
 
 type Item struct {
-	XMLName xml.Name `xml:"item"`
-	Title   string   `xml:"title"`
-	Guid    string   `xml:"guid"`
-	Link    string   `xml:"link"`
-	Created string   `xml:"pubDate"`
+	XMLName   xml.Name `xml:"item"`
+	Title     string   `xml:"title"`
+	Guid      string   `xml:"guid"`
+	Link      string   `xml:"link"`
+	Created   string   `xml:"pubDate"`
+	processed string
 }
 
 func (item *Item) Identify() string {
 	created, _ := time.Parse(time.RFC1123Z, item.Created)
-	return fmt.Sprintf("[%s] %s ---> %s", created.Format("2006-01-02 15:04:05"), item.Guid, item.Title)
+	guid := item.processed
+	if "" == guid {
+		guid = item.Guid
+	}
+	return fmt.Sprintf("[%s] %s ---> %s", created.Format("2006-01-02 15:04:05"), guid, item.Title)
 }
 
 func (item *Item) HasMatch(searches *[]string) bool {
@@ -34,4 +39,14 @@ func (item *Item) HasMatch(searches *[]string) bool {
 func (item *Item) GetID() (int, error) {
 	numberPart := regexp.MustCompile(`(\d+)`).FindStringSubmatch(item.Guid)
 	return strconv.Atoi(numberPart[0])
+}
+
+func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
+	if fullContent, er := GetURLReader().GetContent(item.Guid); er == nil {
+		test := string(fullContent)
+		postProcessed := r.FindAllString(test, -1)
+		if len(postProcessed) > 0 {
+			item.processed = postProcessed[0]
+		}
+	}
 }
