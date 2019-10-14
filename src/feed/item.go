@@ -46,7 +46,7 @@ func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
 		test := string(fullContent)
 		postProcessed := r.FindAllString(test, -1)
 		if len(postProcessed) > 0 {
-			item.processed = postProcessed[0]
+			item.processed = strings.Join(postProcessed, " | ")
 		}
 	}
 }
