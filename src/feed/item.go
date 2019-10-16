@@ -46,6 +46,14 @@ func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
 		test := string(fullContent)
 		postProcessed := r.FindAllString(test, -1)
 		if len(postProcessed) > 0 {
+			uniq := map[string]bool{}
+			for pp := range postProcessed {
+				uniq[postProcessed[pp]] = true
+			}
+			postProcessed = []string{}
+			for uniqItem, _ := range uniq {
+				postProcessed = append(postProcessed, uniqItem)
+			}
 			item.processed = strings.Join(postProcessed, " | ")
 		}
 	}
