@@ -330,6 +330,7 @@ func removeSearchPhrase(gui *cui.Gui, view *cui.View) error {
 }
 
 func addSearchPhrase(gui *cui.Gui, view *cui.View) error {
+	viewToFallBackTo = view.Name()
 	namePrompt := new(InputView)
 	namePrompt.Init(gui, "", "Add SearchPhrase", func(content string) error {
 		editedFeed.AddSearchPhrase(content)
