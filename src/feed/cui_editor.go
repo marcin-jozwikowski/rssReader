@@ -3,12 +3,13 @@ package feed
 import (
 	"errors"
 	"fmt"
-	cui "github.com/jroimartin/gocui"
 	"log"
 	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
+
+	cui "github.com/jroimartin/gocui"
 )
 
 const ViewsFeedSources = "feedSources"
@@ -364,7 +365,7 @@ func deleteNamedView(gui *cui.Gui, view *cui.View) error {
 
 func showHelp(gui *cui.Gui, view *cui.View) error {
 	viewToFallBackTo = view.Name()
-	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 16)
+	x0, y0, x1, y1 := getCenteredViewDimensions(gui, 18)
 	v, _ := gui.SetView(ViewHelp, x0, y0, x1, y1)
 	_, _ = gui.SetCurrentView(ViewHelp)
 	v.Clear()
