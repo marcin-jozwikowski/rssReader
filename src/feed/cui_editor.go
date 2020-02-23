@@ -348,6 +348,12 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 			editedFeed.PostProcess = content
 			return nil
 		})
+	} else if y == (itemCount + 2) {
+		if editedFeed.IsProtected == "1" {
+			editedFeed.IsProtected = "0"
+		} else {
+			editedFeed.IsProtected = "1"
+		}
 	}
 
 	return nil
@@ -376,12 +382,12 @@ func showHelp(gui *cui.Gui, view *cui.View) error {
 	_, _ = fmt.Fprintln(v, "   Ctrl+Q - Discard changes and Quit")
 	_, _ = fmt.Fprintln(v, " ")
 	_, _ = fmt.Fprintln(v, " Sources:")
-	_, _ = fmt.Fprintln(v, "   Enter - Edit selected feed source")
+	_, _ = fmt.Fprintln(v, "   Enter  - Edit selected feed source")
 	_, _ = fmt.Fprintln(v, "   Ctrl+N - Add new feed source")
 	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected feed source")
 	_, _ = fmt.Fprintln(v, " ")
 	_, _ = fmt.Fprintln(v, " Source details:")
-	_, _ = fmt.Fprintln(v, "   Enter - Edit selected value")
+	_, _ = fmt.Fprintln(v, "   Enter  - Edit selected value")
 	_, _ = fmt.Fprintln(v, "   Ctrl+G - Get results from this source")
 	_, _ = fmt.Fprintln(v, "   Ctrl+N - Add new SearchPhrase")
 	_, _ = fmt.Fprintln(v, "   Ctrl+D - Delete selected SearchPhrase/postProcessing")
@@ -411,6 +417,7 @@ func viewFeedDetailsDrawItems() {
 		}
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, " ")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: " + editedFeed.IsProtected)
 	}
 }
 
