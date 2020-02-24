@@ -5,9 +5,13 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/headzoo/surf/errors"
+	"github.com/headzoo/surf/jar"
+	"github.com/laplaceon/cfbypass"
 	"gopkg.in/headzoo/surf.v1"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"os/exec"
 	"rssReader/src/cli"
 	"strings"
@@ -19,13 +23,13 @@ const readerTypeWget = "wget"
 const readerTypeCustom = "custom"
 
 type URLReader interface {
-	GetContent(string) ([]byte, error)
+	GetContent(string, bool) ([]byte, error)
 }
 
 type NativeURLReader struct {
 }
 
-func (NativeURLReader) GetContent(url string) ([]byte, error) {
+func (NativeURLReader) GetContent(url string, protected bool) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running built-in downloader")
 	}
@@ -50,7 +54,7 @@ func (NativeURLReader) GetContent(url string) ([]byte, error) {
 type URLReaderCustom struct {
 }
 
-func (URLReaderCustom) GetContent(url string) ([]byte, error) {
+func (URLReaderCustom) GetContent(url string, protected bool) ([]byte, error) {
 	params := *cli.DownloaderParams
 	if strings.Contains(params, "%s") {
 		params = fmt.Sprintf(params, url)
@@ -69,7 +73,7 @@ func (URLReaderCustom) GetContent(url string) ([]byte, error) {
 type URLReaderWget struct {
 }
 
-func (URLReaderWget) GetContent(url string) ([]byte, error) {
+func (URLReaderWget) GetContent(url string, protected bool) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running custom downloader")
 	}
@@ -90,11 +94,17 @@ func (URLReaderWget) GetContent(url string) ([]byte, error) {
 type URLReaderSurf struct {
 }
 
-func (URLReaderSurf) GetContent(url string) ([]byte, error) {
+func (URLReaderSurf) GetContent(url string, protected bool) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running SURF downloader")
 	}
+
 	bow := surf.NewBrowser()
+	if protected {
+		cookies := getCookieJar(url)
+		bow.SetCookieJar(cookies)
+	}
+
 	err := bow.Open(url)
 	if err != nil {
 		return nil, err
@@ -105,6 +115,19 @@ func (URLReaderSurf) GetContent(url string) ([]byte, error) {
 	_, _ = bow.Download(foo)
 
 	return b.Bytes(), nil
+}
+
+func getCookieJar(urlAddress string) *cookiejar.Jar {
+	urlData, e := url.Parse(urlAddress)
+	if e != nil {
+		return jar.NewMemoryCookies()
+	}
+
+	cookies := cfbypass.GetTokens(urlAddress, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36", "4")
+	cookieJar := jar.NewMemoryCookies()
+	cookieJar.SetCookies(urlData, cookies)
+
+	return cookieJar
 }
 
 func GetURLReader() URLReader {
