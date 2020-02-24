@@ -58,7 +58,7 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 	}
-	if allFeed := getRSSFeed(configFeed.Url); allFeed != nil {
+	if allFeed := getRSSFeed(configFeed); allFeed != nil {
 		allFeed.filterOut(configFeed)
 		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
@@ -69,20 +69,24 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 	waitGroup.Done()
 }
 
-func getRSSFeed(channelUrl string) *Rss {
+func getRSSFeed(configFeed *FeedSource) *Rss {
 	if cli.IsVerboseDebug() {
-		fmt.Println("Reading URL " + channelUrl)
+		fmt.Println("Reading URL " + configFeed.Url)
+	}
+
+	if configFeed.IsProtected == "1" {
+
 	}
 
 	var feed Rss
-	if xmlBytes, err := GetURLReader().GetContent(channelUrl); err == nil {
+	if xmlBytes, err := GetURLReader().GetContent(configFeed.Url, configFeed.IsProtected == "1"); err == nil {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {
-			log.Println(fmt.Sprintf("Error parsing URL %v: %v", channelUrl, err2))
+			log.Println(fmt.Sprintf("Error parsing URL %v: %v", configFeed.Url, err2))
 		}
 	} else {
-		log.Println(fmt.Sprintf("Failed to get XML at %v: %v", channelUrl, err.Error()))
+		log.Println(fmt.Sprintf("Failed to get XML at %v: %v", configFeed.Url, err.Error()))
 	}
 
 	return nil
