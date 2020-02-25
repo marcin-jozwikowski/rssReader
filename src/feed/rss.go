@@ -74,12 +74,8 @@ func getRSSFeed(configFeed *FeedSource) *Rss {
 		fmt.Println("Reading URL " + configFeed.Url)
 	}
 
-	if configFeed.IsProtected == "1" {
-
-	}
-
 	var feed Rss
-	if xmlBytes, err := GetURLReader().GetContent(configFeed.Url, configFeed.IsProtected == "1"); err == nil {
+	if xmlBytes, err := GetURLReader().GetContent(configFeed); err == nil {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {
