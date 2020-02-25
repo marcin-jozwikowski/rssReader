@@ -360,11 +360,7 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 			return nil
 		})
 	} else if y == (itemCount + 2) {
-		if editedFeed.IsProtected == "1" {
-			editedFeed.IsProtected = "0"
-		} else {
-			editedFeed.IsProtected = "1"
-		}
+		editedFeed.IsProtected = !editedFeed.IsProtected
 	}
 
 	return nil
@@ -424,12 +420,16 @@ func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 
 func viewFeedDetailsDrawItems() {
 	if editedFeed != nil {
+		isProtected := "No"
+		if editedFeed.IsProtected {
+			isProtected = "Yes"
+		}
 		for _, item := range editedFeed.SearchPhrases {
 			_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, item)
 		}
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, " ")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
-		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: " + editedFeed.IsProtected)
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: "+isProtected)
 	}
 }
 

@@ -16,7 +16,7 @@ type FeedSource struct {
 	SearchPhrases []string
 	MaxChecked    int
 	PostProcess   string
-	IsProtected   string
+	IsProtected   bool
 }
 
 func ReadConfigFromFile(filename string) (Config, error) {

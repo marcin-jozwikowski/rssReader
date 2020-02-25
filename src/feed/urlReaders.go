@@ -100,7 +100,7 @@ func (URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
 	}
 
 	bow := surf.NewBrowser()
-	if feed.IsProtected == "1" {
+	if feed.IsProtected {
 		bow.SetCookieJar(getCookieJarForFeed(feed))
 	}
 
