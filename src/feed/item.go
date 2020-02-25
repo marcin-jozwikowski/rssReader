@@ -42,7 +42,11 @@ func (item *Item) GetID() (int, error) {
 }
 
 func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
-	if fullContent, er := GetURLReader().GetContent(item.Guid); er == nil {
+	fakeFeed := FeedSource{
+		Url:         item.Guid,
+		IsProtected: false,
+	}
+	if fullContent, er := GetURLReader().GetContent(&fakeFeed); er == nil {
 		test := string(fullContent)
 		postProcessed := r.FindAllString(test, -1)
 		if len(postProcessed) > 0 {

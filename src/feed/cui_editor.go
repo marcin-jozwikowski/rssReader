@@ -76,6 +76,12 @@ func (listView *ListView) ResetItems() {
 	listView.Draw()
 }
 
+func (listView *ListView) Update() {
+	listView.gui.Update(func(gui *cui.Gui) error {
+		return nil
+	})
+}
+
 func (view *CliView) Focus() error {
 	view.view.Highlight = true
 	if _, err = view.gui.SetCurrentView(view.view.Name()); err != nil {
@@ -246,24 +252,28 @@ func initAllKeyBindings(gui *cui.Gui) {
 }
 
 func getCurrentSourceResult(gui *cui.Gui, view *cui.View) error {
-	resultsView := allViews[ViewsFeedResults]
-	resultsView.ResetItems()
-	resultsView.AddItem("Running...")
-	var waitGroup sync.WaitGroup
-	results := make(chan ResultItem, 20)
-	waitGroup.Add(1)
-	go readOneFeed(editedFeed, &waitGroup, results)
-	waitGroup.Wait()
-	close(results)
+	go func() {
+		resultsView := allViews[ViewsFeedResults]
+		resultsView.ResetItems()
+		resultsView.AddItem("Running...")
+		var waitGroup sync.WaitGroup
+		results := make(chan ResultItem, 20)
+		waitGroup.Add(1)
+		go readOneFeed(editedFeed, &waitGroup, results)
+		waitGroup.Wait()
+		close(results)
 
-	for {
-		returnItem, hasMore := <-results
-		if !hasMore {
-			resultsView.AddItem("Finished")
-			break
+		for {
+			returnItem, hasMore := <-results
+			if !hasMore {
+				resultsView.AddItem("Finished")
+				resultsView.Update()
+				break
+			}
+			resultsView.AddItem(returnItem.Identify())
+			resultsView.Update()
 		}
-		resultsView.AddItem(returnItem.Identify())
-	}
+	}()
 
 	return nil
 }
@@ -321,6 +331,7 @@ func removeSearchPhrase(gui *cui.Gui, view *cui.View) error {
 }
 
 func addSearchPhrase(gui *cui.Gui, view *cui.View) error {
+	viewToFallBackTo = view.Name()
 	namePrompt := new(InputView)
 	namePrompt.Init(gui, "", "Add SearchPhrase", func(content string) error {
 		editedFeed.AddSearchPhrase(content)
@@ -349,11 +360,7 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 			return nil
 		})
 	} else if y == (itemCount + 2) {
-		if editedFeed.IsProtected == "1" {
-			editedFeed.IsProtected = "0"
-		} else {
-			editedFeed.IsProtected = "1"
-		}
+		editedFeed.IsProtected = !editedFeed.IsProtected
 	}
 
 	return nil
@@ -404,6 +411,7 @@ func focusOnSources(gui *cui.Gui, view *cui.View) error {
 }
 
 func editCurrentSource(gui *cui.Gui, view *cui.View) error {
+	allViews[ViewsFeedResults].view.Clear()
 	_, selectedItem := view.Cursor()
 	editedFeed = config.GetFeedAt(selectedItem)
 	allViews[ViewsFeedDetails].Draw()
@@ -412,12 +420,16 @@ func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 
 func viewFeedDetailsDrawItems() {
 	if editedFeed != nil {
+		isProtected := "No"
+		if editedFeed.IsProtected {
+			isProtected = "Yes"
+		}
 		for _, item := range editedFeed.SearchPhrases {
 			_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, item)
 		}
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, " ")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
-		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: " + editedFeed.IsProtected)
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: "+isProtected)
 	}
 }
 
