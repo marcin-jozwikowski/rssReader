@@ -104,9 +104,6 @@ type URLReaderSurf struct {
 }
 func (r URLReaderSurf) GetContentPaginated(feed *FeedSource, page int) ([]byte, error) {
 	pagedUrl := strings.Replace(feed.Url, "{page}", strconv.Itoa(page), -1)
-	if cli.IsVerboseDebug() {
-		fmt.Println("Running SURF downloader for page " + pagedUrl)
-	}
 	return r.getContentBytes(pagedUrl, feed.IsProtected)
 }
 func (r URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
@@ -117,13 +114,14 @@ func (r URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
 }
 
 func (r URLReaderSurf) getContentBytes(url string, isProtected bool) ([]byte, error) {
-	var cookieJar *cookiejar.Jar
+	bow := surf.NewBrowser()
+	if cli.IsVerboseDebug() {
+		fmt.Println("Running SURF downloader for " + url)
+	}
 	if isProtected {
-		cookieJar = getCookieJarForFeed(url)
+		bow.SetCookieJar(getCookieJarForFeed(url))
 	}
 
-	bow := surf.NewBrowser()
-	bow.SetCookieJar(cookieJar)
 	err := bow.Open(url)
 	if err != nil {
 		return nil, err
@@ -139,7 +137,13 @@ func (r URLReaderSurf) getContentBytes(url string, isProtected bool) ([]byte, er
 func getCookieJarForFeed(feedUrl string) *cookiejar.Jar {
 	urlData, e := url.Parse(feedUrl)
 	if e != nil {
+		if cli.IsVerboseDebug() {
+			fmt.Println("URL error " + e.Error())
+		}
 		return jar.NewMemoryCookies()
+	}
+	if cli.IsVerboseDebug() {
+		fmt.Println("Setting cookies for " + urlData.Host)
 	}
 
 	cookies := cfbypass.GetTokens(feedUrl, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36", "4")

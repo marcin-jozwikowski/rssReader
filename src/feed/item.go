@@ -22,7 +22,7 @@ func (item *Item) Identify() string {
 	created, _ := time.Parse(time.RFC1123Z, item.Created)
 	itemIdentifier := item.processed
 	if "" == itemIdentifier {
-		itemIdentifier = item.GetLink()
+		itemIdentifier = item.Link
 	}
 	return fmt.Sprintf("[%s] %s ---> %s", created.Format("2006-01-02 15:04:05"), itemIdentifier, item.Title)
 }
@@ -41,16 +41,15 @@ func (item *Item) GetID() (int, error) {
 	return strconv.Atoi(numberPart[0])
 }
 
-func (item *Item) GetLink() string {
+func (item *Item) PrepareForFiltering() {
 	if item.Link == "" {
-		return item.Guid
+		item.Link = item.Guid
 	}
-	return item.Link
 }
 
 func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
 	fakeFeed := FeedSource{
-		Url:         item.Guid,
+		Url:         item.Link,
 		IsProtected: false,
 	}
 	if fullContent, er := GetURLReader().GetContent(&fakeFeed); er == nil {

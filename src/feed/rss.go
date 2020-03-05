@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"log"
 	"regexp"
 	"rssReader/src/cli"
+	"strconv"
 	"strings"
 	"sync"
-	"github.com/PuerkitoBio/goquery"
 )
 
 type Rss struct {
@@ -80,7 +81,6 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 func getHTMLFeed(configFeed *FeedSource) *Rss {
 	var feed = Rss{}
 	var urlReader = GetURLReader()
-	readItems := 0
 	page := 1
 	for {
 		var xmlBytes []byte
@@ -94,8 +94,8 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 		if err == nil {
 			if readerPage, documentError := goquery.NewDocumentFromReader(bytes.NewReader(xmlBytes)); documentError == nil {
 				readerPage.Find(".post").Each(func(id int, selection *goquery.Selection) {
+					class, _ := selection.Attr("class")
 					link := selection.Find("div.title > h1 > a")
-					class, _ := selection.Find("div.title").Attr("class")
 					href, _ := link.Attr("href")
 					created, _ := selection.Find("div.title > small > span.localtime").Attr("data-lttime")
 					item := Item{
@@ -104,8 +104,12 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 						Guid:    class,
 						Created: created,
 					}
+					itemId, _ := strconv.Atoi(item.Identify())
+					if itemId <= configFeed.MaxChecked {
+						return
+					}
+
 					feed.Channel.Items = append(feed.Channel.Items, item)
-					readItems++
 				})
 			} else {
 				log.Println(fmt.Sprintf("Failed to document at %v: %v", configFeed.Url, documentError.Error()))
@@ -116,7 +120,7 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 			break
 		}
 
-		if readItems > 100 || page > 20 {
+		if len(feed.Channel.Items) > 100 || page > 20 {
 			break
 		}
 		page++
@@ -152,6 +156,7 @@ func (rss *Rss) filterOut(feedSource *FeedSource) {
 	for testItemPosition := 0; testItemPosition < rss.Channel.GetItemsCount(); {
 		// for each found RSS item:
 		testItem := rss.Channel.GetItemAt(testItemPosition)
+		testItem.PrepareForFiltering()
 		testItemID, _ := testItem.GetID()
 		if testItemID > feedSource.MaxChecked {
 			if testItemID > maxChecked {
