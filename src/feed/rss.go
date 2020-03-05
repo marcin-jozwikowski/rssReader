@@ -95,11 +95,13 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 			if readerPage, documentError := goquery.NewDocumentFromReader(bytes.NewReader(xmlBytes)); documentError == nil {
 				readerPage.Find(".post").Each(func(id int, selection *goquery.Selection) {
 					link := selection.Find("div.title > h1 > a")
+					class, _ := selection.Find("div.title").Attr("class")
 					href, _ := link.Attr("href")
 					created, _ := selection.Find("div.title > small > span.localtime").Attr("data-lttime")
 					item := Item{
 						Title:   link.Text(),
-						Guid:    href,
+						Link:    href,
+						Guid:    class,
 						Created: created,
 					}
 					feed.Channel.Items = append(feed.Channel.Items, item)

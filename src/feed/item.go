@@ -20,11 +20,11 @@ type Item struct {
 
 func (item *Item) Identify() string {
 	created, _ := time.Parse(time.RFC1123Z, item.Created)
-	guid := item.processed
-	if "" == guid {
-		guid = item.Guid
+	itemIdentifier := item.processed
+	if "" == itemIdentifier {
+		itemIdentifier = item.GetLink()
 	}
-	return fmt.Sprintf("[%s] %s ---> %s", created.Format("2006-01-02 15:04:05"), guid, item.Title)
+	return fmt.Sprintf("[%s] %s ---> %s", created.Format("2006-01-02 15:04:05"), itemIdentifier, item.Title)
 }
 
 func (item *Item) HasMatch(searches *[]string) bool {
@@ -39,6 +39,13 @@ func (item *Item) HasMatch(searches *[]string) bool {
 func (item *Item) GetID() (int, error) {
 	numberPart := regexp.MustCompile(`(\d+)`).FindStringSubmatch(item.Guid)
 	return strconv.Atoi(numberPart[0])
+}
+
+func (item *Item) GetLink() string {
+	if item.Link == "" {
+		return item.Guid
+	}
+	return item.Link
 }
 
 func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
