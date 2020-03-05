@@ -361,6 +361,10 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 		})
 	} else if y == (itemCount + 2) {
 		editedFeed.IsProtected = !editedFeed.IsProtected
+	} else if y == (itemCount + 3) {
+		editedFeed.IsHTML = !editedFeed.IsHTML
+	} else if y == (itemCount + 4) {
+		editedFeed.IsPaginated = !editedFeed.IsPaginated
 	}
 
 	return nil
@@ -424,12 +428,22 @@ func viewFeedDetailsDrawItems() {
 		if editedFeed.IsProtected {
 			isProtected = "Yes"
 		}
+		isHtml := "No"
+		if editedFeed.IsHTML {
+			isHtml = "Yes"
+		}
+		isPaginated := "No"
+		if editedFeed.IsPaginated {
+			isPaginated = "Yes"
+		}
 		for _, item := range editedFeed.SearchPhrases {
 			_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, item)
 		}
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, " ")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: "+isProtected)
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Html: "+isHtml)
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Paginated: "+isPaginated)
 	}
 }
 

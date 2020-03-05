@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"rssReader/src/cli"
 	"strings"
 	"sync"
+	"github.com/PuerkitoBio/goquery"
 )
 
 type Rss struct {
@@ -58,7 +60,13 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 		fmt.Println(fmt.Sprintf("Reading channel: `%s`", configFeed.Url))
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 	}
-	if allFeed := getRSSFeed(configFeed); allFeed != nil {
+	var allFeed *Rss
+	if configFeed.IsHTML {
+		allFeed = getHTMLFeed(configFeed)
+	} else {
+		allFeed = getRSSFeed(configFeed)
+	}
+	if allFeed != nil {
 		allFeed.filterOut(configFeed)
 		if cli.IsVerboseInfo() {
 			fmt.Println(fmt.Sprintf("Found %d new entries for channel `%s`", len(allFeed.Channel.Items), configFeed.Url))
@@ -67,6 +75,52 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 	}
 
 	waitGroup.Done()
+}
+
+func getHTMLFeed(configFeed *FeedSource) *Rss {
+	var feed = Rss{}
+	var urlReader = GetURLReader()
+	readItems := 0
+	page := 1
+	for {
+		var xmlBytes []byte
+		var err error
+
+		if configFeed.IsPaginated {
+			xmlBytes, err = urlReader.GetContentPaginated(configFeed, page)
+		} else {
+			xmlBytes, err = urlReader.GetContent(configFeed)
+		}
+		if err == nil {
+			if readerPage, documentError := goquery.NewDocumentFromReader(bytes.NewReader(xmlBytes)); documentError == nil {
+				readerPage.Find(".post").Each(func(id int, selection *goquery.Selection) {
+					link := selection.Find("div.title > h1 > a")
+					href, _ := link.Attr("href")
+					created, _ := selection.Find("div.title > small > span.localtime").Attr("data-lttime")
+					item := Item{
+						Title:   link.Text(),
+						Guid:    href,
+						Created: created,
+					}
+					feed.Channel.Items = append(feed.Channel.Items, item)
+					readItems++
+				})
+			} else {
+				log.Println(fmt.Sprintf("Failed to document at %v: %v", configFeed.Url, documentError.Error()))
+				break
+			}
+		} else {
+			log.Println(fmt.Sprintf("Failed to get HTML at %v: %v", configFeed.Url, err.Error()))
+			break
+		}
+
+		if readItems > 100 || page > 20 {
+			break
+		}
+		page++
+	}
+
+	return &feed
 }
 
 func getRSSFeed(configFeed *FeedSource) *Rss {

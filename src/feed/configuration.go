@@ -17,6 +17,8 @@ type FeedSource struct {
 	MaxChecked    int
 	PostProcess   string
 	IsProtected   bool
+	IsHTML        bool
+	IsPaginated   bool
 }
 
 func ReadConfigFromFile(filename string) (Config, error) {

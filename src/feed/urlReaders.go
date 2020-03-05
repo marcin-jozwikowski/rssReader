@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os/exec"
 	"rssReader/src/cli"
+	"strconv"
 	"strings"
 )
 
@@ -24,11 +25,15 @@ const readerTypeCustom = "custom"
 
 type URLReader interface {
 	GetContent(*FeedSource) ([]byte, error)
+	GetContentPaginated(*FeedSource, int) ([]byte, error)
 }
 
 type NativeURLReader struct {
 }
 
+func (r NativeURLReader) GetContentPaginated(feed *FeedSource, page int) ([]byte, error) {
+	return r.GetContent(feed)
+}
 func (NativeURLReader) GetContent(feed *FeedSource) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running built-in downloader")
@@ -53,7 +58,9 @@ func (NativeURLReader) GetContent(feed *FeedSource) ([]byte, error) {
 
 type URLReaderCustom struct {
 }
-
+func (r URLReaderCustom) GetContentPaginated(feed *FeedSource, page int) ([]byte, error) {
+	return r.GetContent(feed)
+}
 func (URLReaderCustom) GetContent(feed *FeedSource) ([]byte, error) {
 	params := *cli.DownloaderParams
 	if strings.Contains(params, "%s") {
@@ -72,7 +79,9 @@ func (URLReaderCustom) GetContent(feed *FeedSource) ([]byte, error) {
 
 type URLReaderWget struct {
 }
-
+func (r URLReaderWget) GetContentPaginated(feed *FeedSource, page int) ([]byte, error) {
+	return r.GetContent(feed)
+}
 func (URLReaderWget) GetContent(feed *FeedSource) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running custom downloader")
@@ -93,18 +102,29 @@ func (URLReaderWget) GetContent(feed *FeedSource) ([]byte, error) {
 
 type URLReaderSurf struct {
 }
-
-func (URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
+func (r URLReaderSurf) GetContentPaginated(feed *FeedSource, page int) ([]byte, error) {
+	pagedUrl := strings.Replace(feed.Url, "{page}", strconv.Itoa(page), -1)
+	if cli.IsVerboseDebug() {
+		fmt.Println("Running SURF downloader for page " + pagedUrl)
+	}
+	return r.getContentBytes(pagedUrl, feed.IsProtected)
+}
+func (r URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running SURF downloader")
 	}
+	return r.getContentBytes(feed.Url, feed.IsProtected)
+}
 
-	bow := surf.NewBrowser()
-	if feed.IsProtected {
-		bow.SetCookieJar(getCookieJarForFeed(feed))
+func (r URLReaderSurf) getContentBytes(url string, isProtected bool) ([]byte, error) {
+	var cookieJar *cookiejar.Jar
+	if isProtected {
+		cookieJar = getCookieJarForFeed(url)
 	}
 
-	err := bow.Open(feed.Url)
+	bow := surf.NewBrowser()
+	bow.SetCookieJar(cookieJar)
+	err := bow.Open(url)
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +136,13 @@ func (URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func getCookieJarForFeed(feed *FeedSource) *cookiejar.Jar {
-	urlData, e := url.Parse(feed.Url)
+func getCookieJarForFeed(feedUrl string) *cookiejar.Jar {
+	urlData, e := url.Parse(feedUrl)
 	if e != nil {
 		return jar.NewMemoryCookies()
 	}
 
-	cookies := cfbypass.GetTokens(feed.Url, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36", "4")
+	cookies := cfbypass.GetTokens(feedUrl, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36", "4")
 	cookieJar := jar.NewMemoryCookies()
 	cookieJar.SetCookies(urlData, cookies)
 
