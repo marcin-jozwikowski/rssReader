@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
+	"mvdan.cc/xurls"
 	"regexp"
 	"rssReader/src/cli"
 	"strconv"
@@ -100,10 +101,11 @@ func getHTMLFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
 					class, _ := selection.Attr("class")
 					link := selection.Find("div.title > h1 > a")
 					href, _ := link.Attr("href")
+					destinationURL := xurls.Relaxed.FindString(href)
 					created, _ := selection.Find("div.title > small > span.localtime").Attr("data-lttime")
 					item := Item{
 						Title:   link.Text(),
-						Link:    href,
+						Link:    destinationURL,
 						Guid:    class,
 						Created: created,
 					}
@@ -124,7 +126,7 @@ func getHTMLFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
 			break
 		}
 
-		if len(feed.Channel.Items) > 100 || page > 20 {
+		if page > *cli.PageReadLimit {
 			canContinue = false
 		}
 
