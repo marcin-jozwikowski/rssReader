@@ -7,7 +7,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"log"
 	"mvdan.cc/xurls"
-	"regexp"
 	"rssReader/src/cli"
 	"strconv"
 	"strings"
@@ -32,8 +31,7 @@ func (item *ResultItem) Identify() string {
 }
 
 func (item *ResultItem) ApplyPostProcess() {
-	r := regexp.MustCompile(item.FeedSource.PostProcess)
-	item.Item.ApplyPostProcessRegex(r)
+	item.Item.ApplyPostProcessRegex(item.FeedSource)
 }
 
 func Read(config *Config) {
@@ -63,11 +61,11 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 	}
 	var allFeed *Rss
-	var urlReader = GetURLReader()
+	configFeed.downloader = GetURLReader()
 	if configFeed.IsHTML {
-		allFeed = getHTMLFeed(configFeed, urlReader)
+		allFeed = getHTMLFeed(configFeed)
 	} else {
-		allFeed = getRSSFeed(configFeed, urlReader)
+		allFeed = getRSSFeed(configFeed)
 	}
 	if allFeed != nil {
 		allFeed.filterOut(configFeed)
@@ -80,7 +78,7 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 	waitGroup.Done()
 }
 
-func getHTMLFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
+func getHTMLFeed(configFeed *FeedSource) *Rss {
 	var feed = Rss{}
 	page := 1
 	canContinue := true
@@ -88,9 +86,9 @@ func getHTMLFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
 		var xmlBytes []byte
 		var err error
 		if configFeed.IsPaginated {
-			xmlBytes, err = urlReader.GetContentPaginated(configFeed, page)
+			xmlBytes, err = configFeed.downloader.GetContentPaginated(configFeed, page)
 		} else {
-			xmlBytes, err = urlReader.GetContent(configFeed)
+			xmlBytes, err = configFeed.downloader.GetContent(configFeed)
 		}
 		if err == nil {
 			if readerPage, documentError := goquery.NewDocumentFromReader(bytes.NewReader(xmlBytes)); documentError == nil {
@@ -143,13 +141,13 @@ func getHTMLFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
 	return &feed
 }
 
-func getRSSFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
+func getRSSFeed(configFeed *FeedSource) *Rss {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Reading URL " + configFeed.Url)
 	}
 
 	var feed Rss
-	if xmlBytes, err := urlReader.GetContent(configFeed); err == nil {
+	if xmlBytes, err := configFeed.downloader.GetContent(configFeed); err == nil {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {

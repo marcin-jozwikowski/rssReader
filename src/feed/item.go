@@ -47,12 +47,14 @@ func (item *Item) PrepareForFiltering() {
 	}
 }
 
-func (item *Item) ApplyPostProcessRegex(r *regexp.Regexp) {
+func (item *Item) ApplyPostProcessRegex(feed *FeedSource) {
+	r := regexp.MustCompile(feed.PostProcess)
 	fakeFeed := FeedSource{
 		Url:         item.Link,
-		IsProtected: false,
+		IsProtected: feed.IsProtected,
+		downloader: feed.downloader,
 	}
-	if fullContent, er := GetURLReader().GetContent(&fakeFeed); er == nil {
+	if fullContent, er := feed.downloader.GetContent(&fakeFeed); er == nil {
 		test := string(fullContent)
 		postProcessed := r.FindAllString(test, -1)
 		if len(postProcessed) > 0 {

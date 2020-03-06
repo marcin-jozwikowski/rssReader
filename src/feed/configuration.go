@@ -19,6 +19,7 @@ type FeedSource struct {
 	IsProtected   bool
 	IsHTML        bool
 	IsPaginated   bool
+	downloader    *URLReaderSurf
 }
 
 func ReadConfigFromFile(filename string) (Config, error) {
