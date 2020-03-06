@@ -62,10 +62,11 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 		fmt.Println(fmt.Sprintf("Last checked item ID: %d", configFeed.MaxChecked))
 	}
 	var allFeed *Rss
+	var urlReader = GetURLReader()
 	if configFeed.IsHTML {
-		allFeed = getHTMLFeed(configFeed)
+		allFeed = getHTMLFeed(configFeed, urlReader)
 	} else {
-		allFeed = getRSSFeed(configFeed)
+		allFeed = getRSSFeed(configFeed, urlReader)
 	}
 	if allFeed != nil {
 		allFeed.filterOut(configFeed)
@@ -78,14 +79,13 @@ func readOneFeed(configFeed *FeedSource, waitGroup *sync.WaitGroup, results chan
 	waitGroup.Done()
 }
 
-func getHTMLFeed(configFeed *FeedSource) *Rss {
+func getHTMLFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
 	var feed = Rss{}
-	var urlReader = GetURLReader()
 	page := 1
+	canContinue := true
 	for {
 		var xmlBytes []byte
 		var err error
-
 		if configFeed.IsPaginated {
 			xmlBytes, err = urlReader.GetContentPaginated(configFeed, page)
 		} else {
@@ -94,6 +94,9 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 		if err == nil {
 			if readerPage, documentError := goquery.NewDocumentFromReader(bytes.NewReader(xmlBytes)); documentError == nil {
 				readerPage.Find(".post").Each(func(id int, selection *goquery.Selection) {
+					if !canContinue {
+						return
+					}
 					class, _ := selection.Attr("class")
 					link := selection.Find("div.title > h1 > a")
 					href, _ := link.Attr("href")
@@ -104,8 +107,9 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 						Guid:    class,
 						Created: created,
 					}
-					itemId, _ := strconv.Atoi(item.Identify())
+					itemId, _ := item.GetID()
 					if itemId <= configFeed.MaxChecked {
+						canContinue = false
 						return
 					}
 
@@ -121,21 +125,29 @@ func getHTMLFeed(configFeed *FeedSource) *Rss {
 		}
 
 		if len(feed.Channel.Items) > 100 || page > 20 {
+			canContinue = false
+		}
+
+		if !canContinue {
+			if cli.IsVerboseDebug() {
+				fmt.Println("Total read: " + strconv.Itoa(len(feed.Channel.Items)))
+			}
 			break
 		}
+
 		page++
 	}
 
 	return &feed
 }
 
-func getRSSFeed(configFeed *FeedSource) *Rss {
+func getRSSFeed(configFeed *FeedSource, urlReader *URLReaderSurf) *Rss {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Reading URL " + configFeed.Url)
 	}
 
 	var feed Rss
-	if xmlBytes, err := GetURLReader().GetContent(configFeed); err == nil {
+	if xmlBytes, err := urlReader.GetContent(configFeed); err == nil {
 		if err2 := xml.Unmarshal(xmlBytes, &feed); err2 == nil {
 			return &feed
 		} else {

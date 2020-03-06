@@ -1,0 +1,41 @@
+{
+ "Feeds": [
+  {
+   "Url": "https://scnlog.me/tv-shows?paged={page}",
+   "SearchPhrases": [
+    "Meyers",
+    "Colbert",
+    "Maher",
+    "Fallon",
+    "Kimmel",
+    "Gervais",
+    "Saturday.Night.Live",
+    "Graham.Norton",
+    "Robot.Chicken",
+    "Jimmy.Carr"
+   ],
+   "MaxChecked": 0,
+   "PostProcess": "(?ms)(\\bhttps:\\/\\/mixdrop.com?\\/f\\/[\\w\\d\\.\\-]*\\b|\\bhttps?:\\/\\/mirrorace.com?\\/m\\/[\\w\\d\\.\\-]*\\/\\b|\\bhttps?:\\/\\/openload.com?\\/f\\/[\\w\\d\\.\\-]*\\/\\b)",
+   "IsProtected": true,
+   "IsHTML": true,
+   "IsPaginated": true
+  },
+  {
+   "Url": "https://scnlog.me/movies/feed/",
+   "SearchPhrases": [
+    "Endgame",
+    "Self-defense",
+    "Pets",
+    "Gervais",
+    "Hellboy",
+    "Shazam",
+    "Jimmy.Carr"
+   ],
+   "MaxChecked": 0,
+   "PostProcess": "(?ms)(\\bhttps?:\\/\\/mirrorace.com?\\/m\\/[\\w\\.\\-_\\/]*\\/\\b|\\bhttps?:\\/\\/openload.com?\\/f\\/[\\w\\.\\-_\\/]*\\/\\b)",
+   "IsProtected": true,
+   "IsHTML": false,
+   "IsPaginated": false
+  }
+ ]
+}
