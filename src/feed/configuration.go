@@ -16,7 +16,7 @@ type FeedSource struct {
 	SearchPhrases []string
 	MaxChecked    int
 	PostProcess   string
-	IsProtected   bool
+	CfCookie      string
 	IsHTML        bool
 	IsPaginated   bool
 	downloader    *URLReaderSurf

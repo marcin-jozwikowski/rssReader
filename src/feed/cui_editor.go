@@ -360,7 +360,11 @@ func onEnterInDetails(gui *cui.Gui, view *cui.View) error {
 			return nil
 		})
 	} else if y == (itemCount + 2) {
-		editedFeed.IsProtected = !editedFeed.IsProtected
+		v := new(InputView)
+		v.Init(gui, editedFeed.CfCookie, "CloudFlare Cookie", func(content string) error {
+			editedFeed.CfCookie = content
+			return nil
+		})
 	} else if y == (itemCount + 3) {
 		editedFeed.IsHTML = !editedFeed.IsHTML
 	} else if y == (itemCount + 4) {
@@ -424,9 +428,9 @@ func editCurrentSource(gui *cui.Gui, view *cui.View) error {
 
 func viewFeedDetailsDrawItems() {
 	if editedFeed != nil {
-		isProtected := "No"
-		if editedFeed.IsProtected {
-			isProtected = "Yes"
+		isCookie := "No"
+		if editedFeed.CfCookie != "" {
+			isCookie = "Yes"
 		}
 		isHtml := "No"
 		if editedFeed.IsHTML {
@@ -441,7 +445,7 @@ func viewFeedDetailsDrawItems() {
 		}
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, " ")
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Edit Post-processing")
-		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Protected: "+isProtected)
+		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "CfCookie: "+isCookie)
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Html: "+isHtml)
 		_, _ = fmt.Fprintln(allViews[ViewsFeedDetails].view, "Paginated: "+isPaginated)
 	}

@@ -50,8 +50,8 @@ func (item *Item) PrepareForFiltering() {
 func (item *Item) ApplyPostProcessRegex(feed *FeedSource) {
 	r := regexp.MustCompile(feed.PostProcess)
 	fakeFeed := FeedSource{
-		Url:         item.Link,
-		IsProtected: feed.IsProtected,
+		Url:        item.Link,
+		CfCookie:   feed.CfCookie,
 		downloader: feed.downloader,
 	}
 	if fullContent, er := feed.downloader.GetContent(&fakeFeed); er == nil {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/headzoo/surf/browser"
 	"github.com/headzoo/surf/jar"
-	"github.com/laplaceon/cfbypass"
 	"gopkg.in/headzoo/surf.v1"
+	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"rssReader/src/cli"
@@ -23,24 +23,24 @@ type URLReaderSurf struct {
 
 func (r *URLReaderSurf) GetContentPaginated(feed *FeedSource, page int) ([]byte, error) {
 	pagedUrl := strings.Replace(feed.Url, "{page}", strconv.Itoa(page), -1)
-	return r.getContentBytes(pagedUrl, feed.IsProtected)
+	return r.getContentBytes(pagedUrl, feed.CfCookie)
 }
 
 func (r *URLReaderSurf) GetContent(feed *FeedSource) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running SURF downloader")
 	}
-	return r.getContentBytes(feed.Url, feed.IsProtected)
+	return r.getContentBytes(feed.Url, feed.CfCookie)
 }
 
-func (r *URLReaderSurf) getContentBytes(url string, isProtected bool) ([]byte, error) {
+func (r *URLReaderSurf) getContentBytes(url string, cfCookie string) ([]byte, error) {
 	if cli.IsVerboseDebug() {
 		fmt.Println("Running SURF downloader for " + url)
 	}
 	if !r.initiated {
 		r.surfBrowser = surf.NewBrowser()
-		if isProtected {
-			r.surfBrowser.SetCookieJar(r.getCookieJarForFeed(url))
+		if cfCookie != "" {
+			r.surfBrowser.SetCookieJar(r.getCookieJarForFeed(url, cfCookie))
 		}
 		r.initiated = true
 	}
@@ -57,7 +57,7 @@ func (r *URLReaderSurf) getContentBytes(url string, isProtected bool) ([]byte, e
 	return b.Bytes(), nil
 }
 
-func (r URLReaderSurf) getCookieJarForFeed(feedUrl string) *cookiejar.Jar {
+func (r URLReaderSurf) getCookieJarForFeed(feedUrl string, cookieValue string) *cookiejar.Jar {
 	urlData, e := url.Parse(feedUrl)
 	if e != nil {
 		if cli.IsVerboseDebug() {
@@ -69,7 +69,17 @@ func (r URLReaderSurf) getCookieJarForFeed(feedUrl string) *cookiejar.Jar {
 		fmt.Println("Setting cookies for " + feedUrl)
 	}
 
-	cookies := cfbypass.GetTokens(feedUrl, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36", "4")
+	a := strings.Split(urlData.Host, ".")
+	if len(a) > 2 {
+		// wildcard cookie if not main domain
+		_, a = a[0], a[1:]
+	}
+	var cookies []*http.Cookie
+	cookies = append(cookies, &http.Cookie{
+		Name: "__cfduid",
+		Domain: "." + strings.Join(a, "."),
+		Value: cookieValue,
+	})
 	cookieJar := jar.NewMemoryCookies()
 	cookieJar.SetCookies(urlData, cookies)
 
