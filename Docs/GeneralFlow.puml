@@ -1,0 +1,13 @@
+@startuml
+
+(S)
+- Get URL
+- Extract links by XPATH
+- Parse link title by REGEX \r to Date, Size + URL
+- Group by Date
+- * Select the show
+- Get shows URL content
+- Look for download REGEX
+(F)
+
+@enduml
