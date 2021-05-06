@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"rssReader/src/cli"
-	"rssReader/src/feed"
+	"rssReader/src/reader"
 )
 
 func main() {
-	config, configErr := feed.ReadConfigFromFile(*cli.ConfigFileName)
+	config, configErr := reader.ReadRuntimeConfigFromFile(*cli.ConfigFileName)
 	if configErr != nil {
 		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())
@@ -15,17 +15,15 @@ func main() {
 		*cli.RunEditor = true // enforce config editor
 	}
 
-	if *cli.ResetChecked {
-		config.ResetCheckedCounters()
-	}
-
 	if *cli.RunEditor {
-		if config.Edit() {
-			_ = config.WriteToFile(*cli.ConfigFileName)
-		}
+		//if config.Edit() {
+		//	_ = config.WriteToFile(*cli.ConfigFileName)
+		//}
 		return
 	}
 
-	feed.Read(&config)
-	_ = config.WriteToFile(*cli.ConfigFileName)
+	reader.Run(&config)
+
+	//feed.Read(&config)
+	//_ = config.WriteToFile(*cli.ConfigFileName)
 }

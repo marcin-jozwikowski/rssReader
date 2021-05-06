@@ -1,5 +1,6 @@
 .idea/*
 pkg/
 config.json
+sources.json
 cache.json
-reader
+./reader
