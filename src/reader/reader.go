@@ -7,12 +7,15 @@ import (
 	"strconv"
 )
 
-func Run(config *RuntimeConfig) {
+func Run(config *RuntimeConfig) []*Show {
+	resultingShows := make([]*Show, len(config.Sources))
 	for source := range config.Sources {
 		src := &config.Sources[source]
 		show := runForDataSource(src)
-		println(len(show.Episodes), "episodes for", show.Name)
+		src.AddResultingShow(show)
+		resultingShows = append(resultingShows, show)
 	}
+	return resultingShows
 }
 
 func runForDataSource(data *DataSource) *Show {

@@ -19,6 +19,11 @@ type DataSource struct {
 	GroupField    string
 	InternalXPath string
 	InternalRegex string
+	show          *Show
+}
+
+func (s *DataSource) AddResultingShow(show *Show)  {
+	s.show = show
 }
 
 func ReadRuntimeConfigFromFile(filename string) (RuntimeConfig, error) {
@@ -51,10 +56,10 @@ func fromFile(filename string) (RuntimeConfig, error) {
 	}
 }
 
-func (configuration *RuntimeConfig) AsList() []string {
+func (configuration *RuntimeConfig) SourcesAsList() []string {
 	var result []string
 	for _, fs := range configuration.Sources {
-		result = append(result, fs.Url)
+		result = append(result, fs.Name)
 	}
 
 	return result

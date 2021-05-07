@@ -22,7 +22,8 @@ func main() {
 		return
 	}
 
-	reader.Run(&config)
+	reader.RunCUI(&config)
+	//reader.Run(&config)
 
 	//feed.Read(&config)
 	//_ = config.WriteToFile(*cli.ConfigFileName)
