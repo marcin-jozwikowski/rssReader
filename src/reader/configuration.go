@@ -26,6 +26,10 @@ func (s *DataSource) AddResultingShow(show *Show)  {
 	s.show = show
 }
 
+func (s *DataSource) GetResultingShow() *Show  {
+	return s.show
+}
+
 func ReadRuntimeConfigFromFile(filename string) (RuntimeConfig, error) {
 	if _, err := os.Stat(filename); err == nil {
 		if config, readErr := fromFile(filename); nil == readErr {

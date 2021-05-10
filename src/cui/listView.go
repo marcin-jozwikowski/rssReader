@@ -30,7 +30,7 @@ func (listView *ListView) SetTitle(title string)  {
 
 func (listView *ListView) Draw() {
 	var err error
-	listView.view, err = listView.gui.SetView(listView.view.Name(), listView.Dimensions.left, listView.Dimensions.top, listView.Dimensions.width, listView.Dimensions.height)
+	listView.view, err = listView.gui.SetView(listView.view.Name(), listView.Dimensions.left, listView.Dimensions.top, listView.Dimensions.right, listView.Dimensions.bottom)
 	if err != nil {
 		log.Fatal("Cannot update sites view", err)
 	}

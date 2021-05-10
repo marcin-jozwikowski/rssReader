@@ -14,15 +14,15 @@ func (view *CliView) GetView() *cui.View {
 type ViewDimensions struct {
 	top    int
 	left   int
-	width  int
-	height int
+	right  int
+	bottom int
 }
 
-func NewViewDimensions(top int, left int, width int, height int) ViewDimensions {
+func NewViewDimensions(top int, left int, right int, bottom int) ViewDimensions {
 	return ViewDimensions{
 		top:    top,
 		left:   left,
-		width:  width,
-		height: height,
+		right:  right,
+		bottom: bottom,
 	}
 }
