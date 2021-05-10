@@ -2,12 +2,12 @@ package reader
 
 type Show struct {
 	Name     string
-	Episodes []Episode
+	Episodes []*Episode
 }
 
 type Episode struct {
 	Title    string
-	Releases []Release
+	Releases []*Release
 }
 
 type Release struct {
@@ -26,7 +26,7 @@ func (s *Show) AddRelease(title string, size int, url string) {
 func (s *Show) getEpisodeByTitle(title string) *Episode {
 	for e := range s.Episodes {
 		if s.Episodes[e].Title == title {
-			return &s.Episodes[e]
+			return s.Episodes[e]
 		}
 	}
 	return nil
@@ -34,11 +34,15 @@ func (s *Show) getEpisodeByTitle(title string) *Episode {
 
 func (s *Show) addEpisode(title string) *Episode {
 	episode := Episode{Title: title}
-	s.Episodes = append(s.Episodes, episode)
+	s.Episodes = append(s.Episodes, &episode)
 
 	return &episode
 }
 
+func (s *Show) getEpisodeByAt(id int) *Episode {
+	return s.Episodes[id]
+}
+
 func (e *Episode) addRelease(size int, url string) {
-	e.Releases = append(e.Releases, Release{Url: url, Size: size})
+	e.Releases = append(e.Releases, &Release{Url: url, Size: size})
 }

@@ -10,10 +10,12 @@ import (
 
 const ViewsSources = "viewSources"
 const ViewsEntries = "viewEntries"
+const ViewsReleases = "viewReleases"
 
 var allViews = make(map[string]*listCui.ListView)
 var runtimeConfig *RuntimeConfig
 var currentSourceId = -1
+var currentEntryId = -1
 
 func RunCUI(config *RuntimeConfig) {
 	runtimeConfig = config
@@ -51,9 +53,10 @@ func createCUI() bool {
 	allViews[ViewsEntries] = v
 	v.DrawItems = viewEntriesDrawItems
 
-	//v = new(ListView)
-	//v.Init(gui, ViewsFeedResults, []string{}, "Results")
-	//v.view.Wrap = true
+	v = new(listCui.ListView)
+	v.Init(gui, ViewsReleases, []string{}, "Select entry to view its releases", getViewDimensions(gui, ViewsReleases))
+	allViews[ViewsReleases] = v
+	v.DrawItems = viewReleasesDrawItems
 
 	_ = allViews[ViewsSources].Focus()
 
@@ -69,6 +72,17 @@ func createCUI() bool {
 	}
 
 	return true
+}
+
+func viewReleasesDrawItems() {
+	if currentEntryId == -1 || currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId) == nil {
+		return
+	}
+
+	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).Releases {
+		line := strconv.Itoa(release.Size) + " MB | " + runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).Title + " | " + runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().Name
+		_, _ = fmt.Fprintln(allViews[ViewsReleases].GetView(), line)
+	}
 }
 
 func viewEntriesDrawItems() {
@@ -93,10 +107,19 @@ func viewSourcesDrawItems() {
 
 func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
 	_, selectedSource := view.Cursor()
-	currentSourceId = selectedSource - 1
+	currentSourceId = selectedSource
 	allViews[ViewsEntries].GetView().Clear()
 	allViews[ViewsEntries].Draw()
 	_ = allViews[ViewsEntries].Focus()
+	return nil
+}
+
+func viewsEntriesSelectEntry(gui *cui.Gui, view *cui.View) error {
+	_, selectedEntry := view.Cursor()
+	currentEntryId = selectedEntry
+	allViews[ViewsReleases].GetView().Clear()
+	allViews[ViewsReleases].Draw()
+	_ = allViews[ViewsReleases].Focus()
 	return nil
 }
 
@@ -120,6 +143,16 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err := gui.SetKeybinding(ViewsEntries, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err := gui.SetKeybinding(ViewsEntries, cui.KeyEnter, cui.ModNone, viewsEntriesSelectEntry); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+
+	if err := gui.SetKeybinding(ViewsReleases, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err := gui.SetKeybinding(ViewsReleases, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
 }
 
 func moveCursorUp(i *cui.Gui, view *cui.View) error {
@@ -128,7 +161,10 @@ func moveCursorUp(i *cui.Gui, view *cui.View) error {
 }
 
 func moveCursorDown(i *cui.Gui, view *cui.View) error {
-	view.MoveCursor(0, 1, false)
+	_, y := view.Cursor()
+	if str, _ := view.Line(y+1); str != "" {
+		view.MoveCursor(0, 1, false)
+	}
 	return nil
 }
 
@@ -148,9 +184,9 @@ func getViewDimensions(gui *cui.Gui, viewName string) listCui.ViewDimensions {
 	case ViewsSources:
 		return listCui.NewViewDimensions(0, 0, columnWidth-1, columnHeight-1)
 	case ViewsEntries:
-		return listCui.NewViewDimensions(0, columnWidth, viewWidth -1, viewHeight-1)
-		//case ViewsFeedDetails:
-		//	return columnWidth, 0, viewWidth - 1, columnHeight - 1
+		return listCui.NewViewDimensions(0, columnWidth, viewWidth-1, viewHeight-1)
+	case ViewsReleases:
+		return listCui.NewViewDimensions(columnHeight, 0, columnWidth-1, viewHeight-1)
 	}
 	return listCui.NewViewDimensions(0, 0, 0, 0)
 }
