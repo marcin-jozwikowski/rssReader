@@ -127,6 +127,7 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err := gui.SetKeybinding("", cui.KeyCtrlQ, cui.ModNone, listCui.ExitRightNow); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+
 	if err := gui.SetKeybinding(ViewsSources, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
@@ -153,6 +154,23 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err := gui.SetKeybinding(ViewsReleases, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err := gui.SetKeybinding(ViewsReleases, cui.KeyBackspace, cui.ModNone, viewReleasesClose); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err := gui.SetKeybinding(ViewsReleases, cui.KeyBackspace2, cui.ModNone, viewReleasesClose); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+	if err := gui.SetKeybinding(ViewsReleases, cui.KeyEsc, cui.ModNone, viewReleasesClose); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+}
+
+func viewReleasesClose(gui *cui.Gui, view *cui.View) error {
+	currentEntryId = -1
+	_ = allViews[ViewsReleases].GetView().SetCursor(0, 0)
+	allViews[ViewsReleases].GetView().Clear()
+	_ = allViews[ViewsEntries].Focus()
+	return nil
 }
 
 func moveCursorUp(i *cui.Gui, view *cui.View) error {
@@ -162,7 +180,7 @@ func moveCursorUp(i *cui.Gui, view *cui.View) error {
 
 func moveCursorDown(i *cui.Gui, view *cui.View) error {
 	_, y := view.Cursor()
-	if str, _ := view.Line(y+1); str != "" {
+	if str, _ := view.Line(y + 1); str != "" {
 		view.MoveCursor(0, 1, false)
 	}
 	return nil
