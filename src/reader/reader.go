@@ -40,7 +40,7 @@ func runForDataSource(data *DataSource) *Show {
 			if list["SizeName"] == "GB" {
 				size *= 1000
 			}
-			show.AddRelease(list["Date"], int(size), href)
+			show.AddRelease(list["Date"], list["Title"], int(size), href)
 		})
 	}
 

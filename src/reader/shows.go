@@ -11,16 +11,17 @@ type Episode struct {
 }
 
 type Release struct {
-	Size int
-	Url  string
+	Size     int
+	Url      string
+	Subtitle string
 }
 
-func (s *Show) AddRelease(title string, size int, url string) {
+func (s *Show) AddRelease(title string, subtitle string, size int, url string) {
 	episode := s.getEpisodeByTitle(title)
 	if episode == nil {
 		episode = s.addEpisode(title)
 	}
-	episode.addRelease(size, url)
+	episode.addRelease(size, url, subtitle)
 }
 
 func (s *Show) getEpisodeByTitle(title string) *Episode {
@@ -43,6 +44,6 @@ func (s *Show) getEpisodeByAt(id int) *Episode {
 	return s.Episodes[id]
 }
 
-func (e *Episode) addRelease(size int, url string) {
-	e.Releases = append(e.Releases, &Release{Url: url, Size: size})
+func (e *Episode) addRelease(size int, url string, subtitle string) {
+	e.Releases = append(e.Releases, &Release{Url: url, Size: size, Subtitle: subtitle})
 }
