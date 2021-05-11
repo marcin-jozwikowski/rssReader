@@ -81,9 +81,8 @@ func viewReleasesDrawItems() {
 
 	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).Releases {
 		line := strconv.Itoa(release.Size) + " MB | " +
-			runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).Title +
-			release.Subtitle +
-			" | " + runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().Name
+			release.Episode.Title + release.Subtitle + " | " +
+			release.Episode.Show.Name
 		_, _ = fmt.Fprintln(allViews[ViewsReleases].GetView(), line)
 	}
 }
@@ -110,7 +109,8 @@ func viewSourcesDrawItems() {
 
 func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
 	_, selectedSource := view.Cursor()
-	currentSourceId = selectedSource
+	_, offset := view.Origin()
+	currentSourceId = selectedSource + offset
 	allViews[ViewsEntries].GetView().Clear()
 	allViews[ViewsEntries].Draw()
 	_ = allViews[ViewsEntries].Focus()
@@ -119,6 +119,8 @@ func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
 
 func viewEntriesSelectEntry(gui *cui.Gui, view *cui.View) error {
 	_, selectedEntry := view.Cursor()
+	_, offset := view.Origin()
+	selectedEntry += offset
 	currentEntryId = selectedEntry
 	allViews[ViewsReleases].GetView().Clear()
 	allViews[ViewsReleases].Draw()

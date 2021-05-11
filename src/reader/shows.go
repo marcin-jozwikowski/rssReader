@@ -8,12 +8,14 @@ type Show struct {
 type Episode struct {
 	Title    string
 	Releases []*Release
+	Show     *Show
 }
 
 type Release struct {
 	Size     int
 	Url      string
 	Subtitle string
+	Episode  *Episode
 }
 
 func (s *Show) AddRelease(title string, subtitle string, size int, url string) {
@@ -34,7 +36,7 @@ func (s *Show) getEpisodeByTitle(title string) *Episode {
 }
 
 func (s *Show) addEpisode(title string) *Episode {
-	episode := Episode{Title: title}
+	episode := Episode{Title: title, Show: s}
 	s.Episodes = append(s.Episodes, &episode)
 
 	return &episode
@@ -45,5 +47,5 @@ func (s *Show) getEpisodeByAt(id int) *Episode {
 }
 
 func (e *Episode) addRelease(size int, url string, subtitle string) {
-	e.Releases = append(e.Releases, &Release{Url: url, Size: size, Subtitle: subtitle})
+	e.Releases = append(e.Releases, &Release{Url: url, Size: size, Subtitle: subtitle, Episode: e})
 }
