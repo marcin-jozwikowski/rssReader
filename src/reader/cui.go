@@ -81,8 +81,14 @@ func viewReleasesDrawItems() {
 
 	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).Releases {
 		line := strconv.Itoa(release.Size) + " MB | " +
-			release.Episode.Title + release.Subtitle + " | " +
-			release.Episode.Show.Name
+			release.Episode.Title + release.Subtitle + " | "
+
+		if release.InternalResult == "" {
+			line += release.Episode.Show.Name
+		} else {
+			line += release.InternalResult
+		}
+
 		_, _ = fmt.Fprintln(allViews[ViewsReleases].GetView(), line)
 	}
 }
@@ -177,6 +183,24 @@ func initAllKeyBindings(gui *cui.Gui) {
 	if err := gui.SetKeybinding(ViewsReleases, cui.KeyEsc, cui.ModNone, viewReleasesClose); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
+	if err := gui.SetKeybinding(ViewsReleases, cui.KeyEnter, cui.ModNone, viewReleasesSelectRelease); err != nil {
+		log.Fatal("Failed to set keybindings")
+	}
+}
+
+func viewReleasesSelectRelease(gui *cui.Gui, view *cui.View) error {
+	_, selectedRelease := view.Cursor()
+	_, offset := view.Origin()
+	selectedRelease += offset
+
+	rel := runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).getReleaseAt(selectedRelease)
+
+	go func(release *Release) {
+		runtimeConfig.GetSourceAt(currentSourceId).RunForRelease(release)
+		allViews[ViewsReleases].Update()
+	}(rel)
+
+	return nil
 }
 
 func viewEntriesClose(gui *cui.Gui, view *cui.View) error {

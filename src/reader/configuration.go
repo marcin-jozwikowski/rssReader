@@ -12,21 +12,22 @@ type RuntimeConfig struct {
 }
 
 type DataSource struct {
-	Name          string
-	Url           string
-	XPath         string
-	RegexExtract  string
-	GroupField    string
-	InternalXPath string
-	InternalRegex string
-	show          *Show
+	Name            string
+	Url             string
+	XPath           string
+	RegexExtract    string
+	GroupField      string
+	InternalXPath   string
+	InternalRegex   string
+	InternalBaseUrl string
+	show            *Show
 }
 
-func (s *DataSource) AddResultingShow(show *Show)  {
+func (s *DataSource) AddResultingShow(show *Show) {
 	s.show = show
 }
 
-func (s *DataSource) GetResultingShow() *Show  {
+func (s *DataSource) GetResultingShow() *Show {
 	return s.show
 }
 
