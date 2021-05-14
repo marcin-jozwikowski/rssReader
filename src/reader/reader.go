@@ -19,6 +19,7 @@ func Run(config *RuntimeConfig) []*Show {
 }
 
 func runForDataSource(data *DataSource) *Show {
+	data.SetRunning(true)
 	show := Show{Name: data.Name}
 
 	html, err := GetHtmlContent(data.Url)
@@ -42,6 +43,7 @@ func runForDataSource(data *DataSource) *Show {
 			show.AddRelease(list["Date"], list["Title"], int(size), href)
 		})
 	}
+	data.SetRunning(false)
 
 	return &show
 }

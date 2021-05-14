@@ -22,15 +22,6 @@ func RunCUI(config *RuntimeConfig) {
 	createCUI()
 }
 
-func runReader() {
-	for rcId := range runtimeConfig.Sources {
-		go func(source *DataSource) {
-			source.AddResultingShow(runForDataSource(source))
-			allViews[ViewsSources].Update()
-		}(&runtimeConfig.Sources[rcId])
-	}
-}
-
 func createCUI() bool {
 	gui, err := cui.NewGui(cui.OutputNormal)
 	if err != nil {
@@ -61,8 +52,6 @@ func createCUI() bool {
 	_ = allViews[ViewsSources].Focus()
 
 	initAllKeyBindings(gui)
-
-	runReader()
 
 	finalError := gui.MainLoop()
 	switch finalError {
@@ -105,11 +94,15 @@ func viewEntriesDrawItems() {
 
 func viewSourcesDrawItems() {
 	for _, source := range runtimeConfig.Sources {
-		if source.show == nil {
-			_, _ = fmt.Fprintln(allViews[ViewsSources].GetView(), source.Name)
+		line := source.Name
+		if source.GetResultingShow() == nil {
+			if source.IsCurrentlyRunning() {
+				line += " | ..."
+			}
 		} else {
-			_, _ = fmt.Fprintln(allViews[ViewsSources].GetView(), source.Name+" | "+strconv.Itoa(len(source.show.Episodes))+" Episodes")
+			line += " | " + strconv.Itoa(len(source.show.Episodes)) + " Episodes"
 		}
+		_, _ = fmt.Fprintln(allViews[ViewsSources].GetView(), line)
 	}
 }
 
@@ -117,9 +110,17 @@ func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
 	_, selectedSource := view.Cursor()
 	_, offset := view.Origin()
 	currentSourceId = selectedSource + offset
-	allViews[ViewsEntries].GetView().Clear()
-	allViews[ViewsEntries].Draw()
-	_ = allViews[ViewsEntries].Focus()
+	if runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow() == nil {
+		go func(source *DataSource) {
+			source.AddResultingShow(runForDataSource(source))
+			allViews[ViewsSources].Update()
+		}(runtimeConfig.GetSourceAt(currentSourceId))
+		allViews[ViewsSources].Update()
+	} else {
+		allViews[ViewsEntries].GetView().Clear()
+		allViews[ViewsEntries].Draw()
+		_ = allViews[ViewsEntries].Focus()
+	}
 	return nil
 }
 

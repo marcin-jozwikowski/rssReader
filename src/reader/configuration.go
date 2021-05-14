@@ -21,6 +21,7 @@ type DataSource struct {
 	InternalRegex   string
 	InternalBaseUrl string
 	show            *Show
+	isRunning       bool
 }
 
 func (s *DataSource) AddResultingShow(show *Show) {
@@ -29,6 +30,14 @@ func (s *DataSource) AddResultingShow(show *Show) {
 
 func (s *DataSource) GetResultingShow() *Show {
 	return s.show
+}
+
+func (s *DataSource) IsCurrentlyRunning() bool {
+	return s.isRunning
+}
+
+func (s *DataSource) SetRunning(isRunning bool) {
+	s.isRunning = isRunning
 }
 
 func ReadRuntimeConfigFromFile(filename string) (RuntimeConfig, error) {
