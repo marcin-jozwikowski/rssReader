@@ -1,5 +1,7 @@
 package reader
 
+import "sort"
+
 type Show struct {
 	Name     string
 	Episodes []*Episode
@@ -11,6 +13,12 @@ type Episode struct {
 	Show     *Show
 }
 
+type ByEpisodeTitle []*Episode
+
+func (a ByEpisodeTitle) Len() int           { return len(a) }
+func (a ByEpisodeTitle) Less(i, j int) bool { return a[i].Title > a[j].Title } //desc
+func (a ByEpisodeTitle) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
 type Release struct {
 	Size           int
 	Url            string
@@ -18,6 +26,12 @@ type Release struct {
 	InternalResult string
 	Episode        *Episode
 }
+
+type ByReleaseSize []*Release
+
+func (a ByReleaseSize) Len() int           { return len(a) }
+func (a ByReleaseSize) Less(i, j int) bool { return a[i].Size < a[j].Size }
+func (a ByReleaseSize) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func (s *Show) AddRelease(title string, subtitle string, size int, url string) {
 	episode := s.getEpisodeByTitle(title)
@@ -47,8 +61,13 @@ func (s *Show) getEpisodeByAt(id int) *Episode {
 	return s.Episodes[id]
 }
 
+func (s *Show) Sort() {
+	sort.Sort(ByEpisodeTitle(s.Episodes))
+}
+
 func (e *Episode) addRelease(size int, url string, subtitle string) {
 	e.Releases = append(e.Releases, &Release{Url: url, Size: size, Subtitle: subtitle, Episode: e})
+	sort.Sort(ByReleaseSize(e.Releases))
 }
 
 func (e *Episode) getReleaseAt(id int) *Release {

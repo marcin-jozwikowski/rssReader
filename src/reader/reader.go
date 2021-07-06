@@ -42,6 +42,7 @@ func runForDataSource(data *DataSource) *Show {
 			}
 			show.AddRelease(list["Date"], list["Title"], int(size), href)
 		})
+		show.Sort()
 	}
 	data.SetRunning(false)
 
