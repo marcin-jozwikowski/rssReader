@@ -2,4 +2,4 @@
 pkg/
 sources.json
 cache.json
-reader
+./reader
