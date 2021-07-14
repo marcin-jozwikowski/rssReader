@@ -5,8 +5,8 @@
 - Extract links by XPATH
 - Parse link title by REGEX \r to Date, Size + URL
 - Group by Date
-- * Select the show
-- Get shows URL content
+- * Select the publishing
+- Get publishings URL content
 - Look for download REGEX
 (F)
 

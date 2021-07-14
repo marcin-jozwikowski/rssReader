@@ -20,16 +20,16 @@ type DataSource struct {
 	InternalXPath   string
 	InternalRegex   string
 	InternalBaseUrl string
-	show            *Show
+	publishing      *Publishing
 	isRunning       bool
 }
 
-func (s *DataSource) AddResultingShow(show *Show) {
-	s.show = show
+func (s *DataSource) AddResultingPublishing(publishing *Publishing) {
+	s.publishing = publishing
 }
 
-func (s *DataSource) GetResultingShow() *Show {
-	return s.show
+func (s *DataSource) GetResultingPublishing() *Publishing {
+	return s.publishing
 }
 
 func (s *DataSource) IsCurrentlyRunning() bool {

@@ -2,15 +2,15 @@ package reader
 
 import "sort"
 
-type Show struct {
+type Publishing struct {
 	Name     string
 	Episodes []*Episode
 }
 
 type Episode struct {
-	Title    string
-	Releases []*Release
-	Show     *Show
+	Title      string
+	Releases   []*Release
+	Publishing *Publishing
 }
 
 type ByEpisodeTitle []*Episode
@@ -33,7 +33,7 @@ func (a ByReleaseSize) Len() int           { return len(a) }
 func (a ByReleaseSize) Less(i, j int) bool { return a[i].Size < a[j].Size }
 func (a ByReleaseSize) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-func (s *Show) AddRelease(title string, subtitle string, size int, url string) {
+func (s *Publishing) AddRelease(title string, subtitle string, size int, url string) {
 	episode := s.getEpisodeByTitle(title)
 	if episode == nil {
 		episode = s.addEpisode(title)
@@ -41,7 +41,7 @@ func (s *Show) AddRelease(title string, subtitle string, size int, url string) {
 	episode.addRelease(size, url, subtitle)
 }
 
-func (s *Show) getEpisodeByTitle(title string) *Episode {
+func (s *Publishing) getEpisodeByTitle(title string) *Episode {
 	for e := range s.Episodes {
 		if s.Episodes[e].Title == title {
 			return s.Episodes[e]
@@ -50,18 +50,18 @@ func (s *Show) getEpisodeByTitle(title string) *Episode {
 	return nil
 }
 
-func (s *Show) addEpisode(title string) *Episode {
-	episode := Episode{Title: title, Show: s}
+func (s *Publishing) addEpisode(title string) *Episode {
+	episode := Episode{Title: title, Publishing: s}
 	s.Episodes = append(s.Episodes, &episode)
 
 	return &episode
 }
 
-func (s *Show) getEpisodeByAt(id int) *Episode {
+func (s *Publishing) getEpisodeByAt(id int) *Episode {
 	return s.Episodes[id]
 }
 
-func (s *Show) Sort() {
+func (s *Publishing) Sort() {
 	sort.Sort(ByEpisodeTitle(s.Episodes))
 }
 

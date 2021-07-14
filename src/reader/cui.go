@@ -64,16 +64,16 @@ func createCUI() bool {
 }
 
 func viewReleasesDrawItems() {
-	if currentEntryId == -1 || currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId) == nil {
+	if currentEntryId == -1 || currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().getEpisodeByAt(currentEntryId) == nil {
 		return
 	}
 
-	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).Releases {
+	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().getEpisodeByAt(currentEntryId).Releases {
 		line := strconv.Itoa(release.Size) + " MB | " +
 			release.Episode.Title + release.Subtitle + " | "
 
 		if release.InternalResult == "" {
-			line += release.Episode.Show.Name
+			line += release.Episode.Publishing.Name
 		} else {
 			line += release.InternalResult
 		}
@@ -83,11 +83,11 @@ func viewReleasesDrawItems() {
 }
 
 func viewEntriesDrawItems() {
-	if currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow() == nil {
+	if currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing() == nil {
 		return
 	}
 
-	for _, entry := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().Episodes {
+	for _, entry := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().Episodes {
 		_, _ = fmt.Fprintln(allViews[ViewsEntries].GetView(), entry.Title+" | "+strconv.Itoa(len(entry.Releases))+" Releases")
 	}
 }
@@ -95,12 +95,12 @@ func viewEntriesDrawItems() {
 func viewSourcesDrawItems() {
 	for _, source := range runtimeConfig.Sources {
 		line := source.Name
-		if source.GetResultingShow() == nil {
+		if source.GetResultingPublishing() == nil {
 			if source.IsCurrentlyRunning() {
 				line += " | ..."
 			}
 		} else {
-			line += " | " + strconv.Itoa(len(source.show.Episodes)) + " Episodes"
+			line += " | " + strconv.Itoa(len(source.publishing.Episodes)) + " Episodes"
 		}
 		_, _ = fmt.Fprintln(allViews[ViewsSources].GetView(), line)
 	}
@@ -110,9 +110,9 @@ func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
 	_, selectedSource := view.Cursor()
 	_, offset := view.Origin()
 	currentSourceId = selectedSource + offset
-	if runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow() == nil {
+	if runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing() == nil {
 		go func(source *DataSource) {
-			source.AddResultingShow(runForDataSource(source))
+			source.AddResultingPublishing(runForDataSource(source))
 			allViews[ViewsSources].Update()
 		}(runtimeConfig.GetSourceAt(currentSourceId))
 		allViews[ViewsSources].Update()
@@ -194,7 +194,7 @@ func viewReleasesSelectRelease(gui *cui.Gui, view *cui.View) error {
 	_, offset := view.Origin()
 	selectedRelease += offset
 
-	rel := runtimeConfig.GetSourceAt(currentSourceId).GetResultingShow().getEpisodeByAt(currentEntryId).getReleaseAt(selectedRelease)
+	rel := runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().getEpisodeByAt(currentEntryId).getReleaseAt(selectedRelease)
 
 	go func(release *Release) {
 		runtimeConfig.GetSourceAt(currentSourceId).RunForRelease(release)

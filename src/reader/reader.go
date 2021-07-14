@@ -7,20 +7,20 @@ import (
 	"strconv"
 )
 
-func Run(config *RuntimeConfig) []*Show {
-	resultingShows := make([]*Show, len(config.Sources))
+func Run(config *RuntimeConfig) []*Publishing {
+	resultingPublishes := make([]*Publishing, len(config.Sources))
 	for source := range config.Sources {
 		src := &config.Sources[source]
-		show := runForDataSource(src)
-		src.AddResultingShow(show)
-		resultingShows = append(resultingShows, show)
+		publishing := runForDataSource(src)
+		src.AddResultingPublishing(publishing)
+		resultingPublishes = append(resultingPublishes, publishing)
 	}
-	return resultingShows
+	return resultingPublishes
 }
 
-func runForDataSource(data *DataSource) *Show {
+func runForDataSource(data *DataSource) *Publishing {
 	data.SetRunning(true)
-	show := Show{Name: data.Name}
+	publishing := Publishing{Name: data.Name}
 
 	html, err := GetHtmlContent(data.Url)
 	if err != nil {
@@ -40,13 +40,13 @@ func runForDataSource(data *DataSource) *Show {
 			if list["SizeName"] == "GB" {
 				size *= 1000
 			}
-			show.AddRelease(list["Date"], list["Title"], int(size), href)
+			publishing.AddRelease(list["Date"], list["Title"], int(size), href)
 		})
-		show.Sort()
+		publishing.Sort()
 	}
 	data.SetRunning(false)
 
-	return &show
+	return &publishing
 }
 
 func (s *DataSource) RunForRelease(release *Release) {
