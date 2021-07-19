@@ -9,12 +9,16 @@ import (
 type ListView struct {
 	CliView
 	Title      string
-	items      []string
+	items      *[]ListViewItem
 	DrawItems  func()
 	Dimensions ViewDimensions
 }
 
-func (listView *ListView) Init(gui *cui.Gui, name string, items []string, title string, dimensions ViewDimensions) {
+type ListViewItem interface {
+	ToString() string
+}
+
+func (listView *ListView) Init(gui *cui.Gui, name string, items *[]ListViewItem, title string, dimensions ViewDimensions) {
 	listView.items = items
 	listView.gui = gui
 	listView.Dimensions = dimensions
@@ -39,19 +43,19 @@ func (listView *ListView) Draw() {
 	if listView.DrawItems != nil {
 		listView.DrawItems()
 	} else {
-		for _, item := range listView.items {
-			_, _ = fmt.Fprintln(listView.view, item)
+		for _, item := range *listView.items {
+			_, _ = fmt.Fprintln(listView.view, item.ToString())
 		}
 	}
 }
 
-func (listView *ListView) AddItem(item string) {
-	listView.items = append(listView.items, item)
+func (listView *ListView) AddItem(item ListViewItem) {
+	*listView.items = append(*listView.items, item)
 	listView.Draw()
 }
 
 func (listView *ListView) ResetItems() {
-	listView.items = []string{}
+	*listView.items = []ListViewItem{}
 	listView.Draw()
 }
 

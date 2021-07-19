@@ -5,10 +5,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"rssReader/src/cui"
+	"strconv"
 )
 
 type RuntimeConfig struct {
-	Sources []DataSource
+	Sources []*DataSource
+}
+
+func (configuration RuntimeConfig) GetListViewItems() *[]cui.ListViewItem {
+	var r []cui.ListViewItem
+	for _, c := range configuration.Sources {
+		r = append(r, c)
+	}
+	return &r
 }
 
 type DataSource struct {
@@ -22,6 +32,18 @@ type DataSource struct {
 	InternalBaseUrl string
 	publishing      *Publishing
 	isRunning       bool
+}
+
+func (s DataSource) ToString() string {
+	line := s.Name
+	if s.GetResultingPublishing() == nil {
+		if s.IsCurrentlyRunning() {
+			line += " | ..."
+		}
+	} else {
+		line += " | " + strconv.Itoa(len(s.publishing.Pieces)) + " Pieces"
+	}
+	return line
 }
 
 func (s *DataSource) AddResultingPublishing(publishing *Publishing) {
@@ -70,15 +92,6 @@ func fromFile(filename string) (RuntimeConfig, error) {
 	}
 }
 
-func (configuration *RuntimeConfig) SourcesAsList() []string {
-	var result []string
-	for _, fs := range configuration.Sources {
-		result = append(result, fs.Name)
-	}
-
-	return result
-}
-
 func (configuration *RuntimeConfig) WriteToFile(filename string) error {
 	if file, err := json.MarshalIndent(configuration, "", " "); err != nil {
 		return fmt.Errorf("error while encoding RuntimeConfig: %v", err.Error())
@@ -90,12 +103,12 @@ func (configuration *RuntimeConfig) WriteToFile(filename string) error {
 	}
 }
 
-func (configuration *RuntimeConfig) GetSources() *[]DataSource {
-	return &configuration.Sources
+func (configuration *RuntimeConfig) GetSources() []*DataSource {
+	return configuration.Sources
 }
 
 func (configuration *RuntimeConfig) GetSourceAt(feedID int) *DataSource {
-	return &configuration.Sources[feedID]
+	return configuration.Sources[feedID]
 }
 
 func (configuration *RuntimeConfig) DeleteSourceAt(keyId int) {
@@ -103,7 +116,7 @@ func (configuration *RuntimeConfig) DeleteSourceAt(keyId int) {
 }
 
 func (configuration *RuntimeConfig) AddSource(url string) {
-	configuration.Sources = append(configuration.Sources, DataSource{Url: url})
+	configuration.Sources = append(configuration.Sources, &DataSource{Url: url})
 }
 
 func (configuration *RuntimeConfig) CountSources() int {

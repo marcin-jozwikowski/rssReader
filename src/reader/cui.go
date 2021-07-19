@@ -35,17 +35,17 @@ func createCUI() bool {
 	gui.SetManagerFunc(layoutManager)
 
 	v := new(listCui.ListView)
-	v.Init(gui, ViewsSources, runtimeConfig.SourcesAsList(), "Sources", getViewDimensions(gui, ViewsSources))
+	v.Init(gui, ViewsSources, runtimeConfig.GetListViewItems(), "Sources", getViewDimensions(gui, ViewsSources))
 	allViews[ViewsSources] = v
-	v.DrawItems = viewSourcesDrawItems
+	//v.DrawItems = viewSourcesDrawItems
 
 	v = new(listCui.ListView)
-	v.Init(gui, ViewsEntries, []string{}, "Select source to view its entries", getViewDimensions(gui, ViewsEntries))
+	v.Init(gui, ViewsEntries, &[]listCui.ListViewItem{}, "Select source to view its entries", getViewDimensions(gui, ViewsEntries))
 	allViews[ViewsEntries] = v
 	v.DrawItems = viewEntriesDrawItems
 
 	v = new(listCui.ListView)
-	v.Init(gui, ViewsReleases, []string{}, "Select entry to view its releases", getViewDimensions(gui, ViewsReleases))
+	v.Init(gui, ViewsReleases, &[]listCui.ListViewItem{}, "Select entry to view its releases", getViewDimensions(gui, ViewsReleases))
 	allViews[ViewsReleases] = v
 	v.DrawItems = viewReleasesDrawItems
 
@@ -89,20 +89,6 @@ func viewEntriesDrawItems() {
 
 	for _, entry := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().Pieces {
 		_, _ = fmt.Fprintln(allViews[ViewsEntries].GetView(), entry.Title+" | "+strconv.Itoa(len(entry.Releases))+" Releases")
-	}
-}
-
-func viewSourcesDrawItems() {
-	for _, source := range runtimeConfig.Sources {
-		line := source.Name
-		if source.GetResultingPublishing() == nil {
-			if source.IsCurrentlyRunning() {
-				line += " | ..."
-			}
-		} else {
-			line += " | " + strconv.Itoa(len(source.publishing.Pieces)) + " Pieces"
-		}
-		_, _ = fmt.Fprintln(allViews[ViewsSources].GetView(), line)
 	}
 }
 

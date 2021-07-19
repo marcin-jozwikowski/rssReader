@@ -10,7 +10,7 @@ import (
 func Run(config *RuntimeConfig) []*Publishing {
 	resultingPublishes := make([]*Publishing, len(config.Sources))
 	for source := range config.Sources {
-		src := &config.Sources[source]
+		src := config.Sources[source]
 		publishing := runForDataSource(src)
 		src.AddResultingPublishing(publishing)
 		resultingPublishes = append(resultingPublishes, publishing)
