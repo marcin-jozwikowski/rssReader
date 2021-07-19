@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"rssReader/src/application"
 	"rssReader/src/cli"
-	"rssReader/src/reader"
 )
 
 func main() {
-	config, configErr := reader.ReadRuntimeConfigFromFile(*cli.ConfigFileName)
+	config, configErr := application.ReadRuntimeConfigFromFile(*cli.ConfigFileName)
 	if configErr != nil {
 		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())
@@ -22,8 +22,8 @@ func main() {
 		return
 	}
 
-	reader.RunCUI(&config)
-	//reader.Run(&config)
+	application.RunCUI(&config)
+	//publishing.Run(&config)
 
 	//feed.Read(&config)
 	//_ = config.WriteToFile(*cli.ConfigFileName)

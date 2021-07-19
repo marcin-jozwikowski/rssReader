@@ -1,4 +1,4 @@
-package reader
+package publishing
 
 import "sort"
 
@@ -19,6 +19,6 @@ func (e *Piece) addRelease(size int, url string, subtitle string) {
 	sort.Sort(ByReleaseSize(e.Releases))
 }
 
-func (e *Piece) getReleaseAt(id int) *Release {
+func (e *Piece) GetReleaseAt(id int) *Release {
 	return e.Releases[id]
 }

@@ -1,10 +1,11 @@
-package reader
+package application
 
 import (
 	"fmt"
 	cui "github.com/jroimartin/gocui"
 	"log"
 	listCui "rssReader/src/cui"
+	"rssReader/src/publishing"
 	"strconv"
 )
 
@@ -64,11 +65,11 @@ func createCUI() bool {
 }
 
 func viewReleasesDrawItems() {
-	if currentEntryId == -1 || currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().getPieceByAt(currentEntryId) == nil {
+	if currentEntryId == -1 || currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().GetPieceByAt(currentEntryId) == nil {
 		return
 	}
 
-	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().getPieceByAt(currentEntryId).Releases {
+	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().GetPieceByAt(currentEntryId).Releases {
 		line := strconv.Itoa(release.Size) + " MB | " +
 			release.Piece.Title + release.Subtitle + " | "
 
@@ -92,13 +93,13 @@ func viewEntriesDrawItems() {
 	}
 }
 
-func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
+func viewSourcesSelectEntry(_ *cui.Gui, view *cui.View) error {
 	_, selectedSource := view.Cursor()
 	_, offset := view.Origin()
 	currentSourceId = selectedSource + offset
 	if runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing() == nil {
 		go func(source *DataSource) {
-			source.AddResultingPublishing(runForDataSource(source))
+			source.AddResultingPublishing(RunForDataSource(source))
 			allViews[ViewsSources].Update()
 		}(runtimeConfig.GetSourceAt(currentSourceId))
 		allViews[ViewsSources].Update()
@@ -110,7 +111,7 @@ func viewSourcesSelectEntry(gui *cui.Gui, view *cui.View) error {
 	return nil
 }
 
-func viewEntriesSelectEntry(gui *cui.Gui, view *cui.View) error {
+func viewEntriesSelectEntry(_ *cui.Gui, view *cui.View) error {
 	_, selectedEntry := view.Cursor()
 	_, offset := view.Origin()
 	selectedEntry += offset
@@ -175,22 +176,22 @@ func initAllKeyBindings(gui *cui.Gui) {
 	}
 }
 
-func viewReleasesSelectRelease(gui *cui.Gui, view *cui.View) error {
+func viewReleasesSelectRelease(_ *cui.Gui, view *cui.View) error {
 	_, selectedRelease := view.Cursor()
 	_, offset := view.Origin()
 	selectedRelease += offset
 
-	rel := runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().getPieceByAt(currentEntryId).getReleaseAt(selectedRelease)
+	rel := runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().GetPieceByAt(currentEntryId).GetReleaseAt(selectedRelease)
 
-	go func(release *Release) {
-		runtimeConfig.GetSourceAt(currentSourceId).RunForRelease(release)
+	go func(release *publishing.Release) {
+		RunForRelease(runtimeConfig.GetSourceAt(currentSourceId), release)
 		allViews[ViewsReleases].Update()
 	}(rel)
 
 	return nil
 }
 
-func viewEntriesClose(gui *cui.Gui, view *cui.View) error {
+func viewEntriesClose(_ *cui.Gui, _ *cui.View) error {
 	currentSourceId = -1
 	_ = allViews[ViewsEntries].GetView().SetCursor(0, 0)
 	allViews[ViewsEntries].GetView().Clear()
@@ -198,7 +199,7 @@ func viewEntriesClose(gui *cui.Gui, view *cui.View) error {
 	return nil
 }
 
-func viewReleasesClose(gui *cui.Gui, view *cui.View) error {
+func viewReleasesClose(_ *cui.Gui, _ *cui.View) error {
 	currentEntryId = -1
 	_ = allViews[ViewsReleases].GetView().SetCursor(0, 0)
 	allViews[ViewsReleases].GetView().Clear()
@@ -206,12 +207,12 @@ func viewReleasesClose(gui *cui.Gui, view *cui.View) error {
 	return nil
 }
 
-func moveCursorUp(i *cui.Gui, view *cui.View) error {
+func moveCursorUp(_ *cui.Gui, view *cui.View) error {
 	view.MoveCursor(0, -1, false)
 	return nil
 }
 
-func moveCursorDown(i *cui.Gui, view *cui.View) error {
+func moveCursorDown(_ *cui.Gui, view *cui.View) error {
 	_, y := view.Cursor()
 	if str, _ := view.Line(y + 1); str != "" {
 		view.MoveCursor(0, 1, false)
@@ -219,7 +220,7 @@ func moveCursorDown(i *cui.Gui, view *cui.View) error {
 	return nil
 }
 
-func layoutManager(gui *cui.Gui) error {
+func layoutManager(_ *cui.Gui) error {
 	for _, listView := range allViews {
 		listView.Draw()
 	}

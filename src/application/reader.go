@@ -1,26 +1,16 @@
-package reader
+package application
 
 import (
 	"bytes"
 	"github.com/PuerkitoBio/goquery"
 	"regexp"
+	"rssReader/src/publishing"
 	"strconv"
 )
 
-func Run(config *RuntimeConfig) []*Publishing {
-	resultingPublishes := make([]*Publishing, len(config.Sources))
-	for source := range config.Sources {
-		src := config.Sources[source]
-		publishing := runForDataSource(src)
-		src.AddResultingPublishing(publishing)
-		resultingPublishes = append(resultingPublishes, publishing)
-	}
-	return resultingPublishes
-}
-
-func runForDataSource(data *DataSource) *Publishing {
+func RunForDataSource(data *DataSource) *publishing.Publishing {
 	data.SetRunning(true)
-	publishing := Publishing{Name: data.Name}
+	currentPublishing := publishing.Publishing{Name: data.Name}
 
 	html, err := GetHtmlContent(data.Url)
 	if err != nil {
@@ -40,16 +30,16 @@ func runForDataSource(data *DataSource) *Publishing {
 			if list["SizeName"] == "GB" {
 				size *= 1000
 			}
-			publishing.AddRelease(list["Date"], list["Title"], int(size), href)
+			currentPublishing.AddRelease(list["Date"], list["Title"], int(size), href)
 		})
-		publishing.Sort()
+		currentPublishing.Sort()
 	}
 	data.SetRunning(false)
 
-	return &publishing
+	return &currentPublishing
 }
 
-func (s *DataSource) RunForRelease(release *Release) {
+func RunForRelease(s *DataSource, release *publishing.Release) {
 	defaultResult := " .... "
 	dataUrl := s.InternalBaseUrl + release.Url
 	release.InternalResult = defaultResult
@@ -80,7 +70,7 @@ func (s *DataSource) RunForRelease(release *Release) {
 
 func extractMatches(matches []string, names []string) map[string]string {
 	paramsMap := make(map[string]string)
-	for i, _ := range names {
+	for i := range names {
 		if i > 0 && i <= len(matches) {
 			paramsMap[names[i]] = matches[i]
 		}

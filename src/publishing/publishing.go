@@ -1,4 +1,4 @@
-package reader
+package publishing
 
 import "sort"
 
@@ -31,7 +31,7 @@ func (s *Publishing) addPiece(title string) *Piece {
 	return &piece
 }
 
-func (s *Publishing) getPieceByAt(id int) *Piece {
+func (s *Publishing) GetPieceByAt(id int) *Piece {
 	return s.Pieces[id]
 }
 

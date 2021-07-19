@@ -1,4 +1,4 @@
-package reader
+package publishing
 
 type Release struct {
 	Size           int

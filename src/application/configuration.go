@@ -1,4 +1,4 @@
-package reader
+package application
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"rssReader/src/cui"
+	"rssReader/src/publishing"
 	"strconv"
 )
 
@@ -30,7 +31,7 @@ type DataSource struct {
 	InternalXPath   string
 	InternalRegex   string
 	InternalBaseUrl string
-	publishing      *Publishing
+	publishing      *publishing.Publishing
 	isRunning       bool
 }
 
@@ -46,11 +47,11 @@ func (s DataSource) ToString() string {
 	return line
 }
 
-func (s *DataSource) AddResultingPublishing(publishing *Publishing) {
+func (s *DataSource) AddResultingPublishing(publishing *publishing.Publishing) {
 	s.publishing = publishing
 }
 
-func (s *DataSource) GetResultingPublishing() *Publishing {
+func (s *DataSource) GetResultingPublishing() *publishing.Publishing {
 	return s.publishing
 }
 
