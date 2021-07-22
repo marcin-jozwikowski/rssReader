@@ -1,6 +1,7 @@
 package application
 
 import (
+	"rssReader/src/cui"
 	"rssReader/src/publishing"
 	"strconv"
 )
@@ -28,6 +29,14 @@ func (s DataSource) ToString() string {
 		line += " | " + strconv.Itoa(len(s.publishing.Pieces)) + " Pieces"
 	}
 	return line
+}
+
+func (s *DataSource) GetListViewItems() *[]cui.ListViewItem {
+	var r []cui.ListViewItem
+	for _, c := range s.GetResultingPublishing().Pieces {
+		r = append(r, c)
+	}
+	return &r
 }
 
 func (s *DataSource) AddResultingPublishing(publishing *publishing.Publishing) {

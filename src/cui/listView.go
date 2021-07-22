@@ -19,7 +19,7 @@ type ListViewItem interface {
 }
 
 func (listView *ListView) Init(gui *cui.Gui, name string, items *[]ListViewItem, title string, dimensions ViewDimensions) {
-	listView.items = items
+	listView.SetItems(items)
 	listView.gui = gui
 	listView.Dimensions = dimensions
 
@@ -47,6 +47,10 @@ func (listView *ListView) Draw() {
 			_, _ = fmt.Fprintln(listView.view, item.ToString())
 		}
 	}
+}
+
+func (listView *ListView) SetItems(items *[]ListViewItem) {
+	listView.items = items
 }
 
 func (listView *ListView) AddItem(item ListViewItem) {

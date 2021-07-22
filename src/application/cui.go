@@ -10,7 +10,7 @@ import (
 )
 
 const ViewsSources = "viewSources"
-const ViewsEntries = "viewEntries"
+const ViewsPieces = "viewsPieces"
 const ViewsReleases = "viewReleases"
 
 var allViews = make(map[string]*listCui.ListView)
@@ -38,15 +38,13 @@ func createCUI() bool {
 	v := new(listCui.ListView)
 	v.Init(gui, ViewsSources, runtimeConfig.GetListViewItems(), "Sources", getViewDimensions(gui, ViewsSources))
 	allViews[ViewsSources] = v
-	//v.DrawItems = viewSourcesDrawItems
 
 	v = new(listCui.ListView)
-	v.Init(gui, ViewsEntries, &[]listCui.ListViewItem{}, "Select source to view its entries", getViewDimensions(gui, ViewsEntries))
-	allViews[ViewsEntries] = v
-	v.DrawItems = viewEntriesDrawItems
+	v.Init(gui, ViewsPieces, &[]listCui.ListViewItem{}, "Select source to view its pieces", getViewDimensions(gui, ViewsPieces))
+	allViews[ViewsPieces] = v
 
 	v = new(listCui.ListView)
-	v.Init(gui, ViewsReleases, &[]listCui.ListViewItem{}, "Select entry to view its releases", getViewDimensions(gui, ViewsReleases))
+	v.Init(gui, ViewsReleases, &[]listCui.ListViewItem{}, "Select a piece to view its releases", getViewDimensions(gui, ViewsReleases))
 	allViews[ViewsReleases] = v
 	v.DrawItems = viewReleasesDrawItems
 
@@ -83,30 +81,22 @@ func viewReleasesDrawItems() {
 	}
 }
 
-func viewEntriesDrawItems() {
-	if currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing() == nil {
-		return
-	}
-
-	for _, entry := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().Pieces {
-		_, _ = fmt.Fprintln(allViews[ViewsEntries].GetView(), entry.Title+" | "+strconv.Itoa(len(entry.Releases))+" Releases")
-	}
-}
-
 func viewSourcesSelectEntry(_ *cui.Gui, view *cui.View) error {
 	_, selectedSource := view.Cursor()
 	_, offset := view.Origin()
 	currentSourceId = selectedSource + offset
 	if runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing() == nil {
+		// run the reader
 		go func(source *DataSource) {
 			source.AddResultingPublishing(RunForDataSource(source))
 			allViews[ViewsSources].Update()
 		}(runtimeConfig.GetSourceAt(currentSourceId))
 		allViews[ViewsSources].Update()
 	} else {
-		allViews[ViewsEntries].GetView().Clear()
-		allViews[ViewsEntries].Draw()
-		_ = allViews[ViewsEntries].Focus()
+		// display the items
+		allViews[ViewsPieces].GetView().Clear()
+		allViews[ViewsPieces].SetItems(runtimeConfig.GetSourceAt(currentSourceId).GetListViewItems())
+		_ = allViews[ViewsPieces].Focus()
 	}
 	return nil
 }
@@ -137,22 +127,22 @@ func initAllKeyBindings(gui *cui.Gui) {
 		log.Fatal("Failed to set keybindings")
 	}
 
-	if err := gui.SetKeybinding(ViewsEntries, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
+	if err := gui.SetKeybinding(ViewsPieces, cui.KeyArrowDown, cui.ModNone, moveCursorDown); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err := gui.SetKeybinding(ViewsEntries, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
+	if err := gui.SetKeybinding(ViewsPieces, cui.KeyArrowUp, cui.ModNone, moveCursorUp); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err := gui.SetKeybinding(ViewsEntries, cui.KeyEnter, cui.ModNone, viewEntriesSelectEntry); err != nil {
+	if err := gui.SetKeybinding(ViewsPieces, cui.KeyEnter, cui.ModNone, viewEntriesSelectEntry); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err := gui.SetKeybinding(ViewsEntries, cui.KeyBackspace, cui.ModNone, viewEntriesClose); err != nil {
+	if err := gui.SetKeybinding(ViewsPieces, cui.KeyBackspace, cui.ModNone, viewEntriesClose); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err := gui.SetKeybinding(ViewsEntries, cui.KeyBackspace2, cui.ModNone, viewEntriesClose); err != nil {
+	if err := gui.SetKeybinding(ViewsPieces, cui.KeyBackspace2, cui.ModNone, viewEntriesClose); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
-	if err := gui.SetKeybinding(ViewsEntries, cui.KeyEsc, cui.ModNone, viewEntriesClose); err != nil {
+	if err := gui.SetKeybinding(ViewsPieces, cui.KeyEsc, cui.ModNone, viewEntriesClose); err != nil {
 		log.Fatal("Failed to set keybindings")
 	}
 
@@ -193,8 +183,8 @@ func viewReleasesSelectRelease(_ *cui.Gui, view *cui.View) error {
 
 func viewEntriesClose(_ *cui.Gui, _ *cui.View) error {
 	currentSourceId = -1
-	_ = allViews[ViewsEntries].GetView().SetCursor(0, 0)
-	allViews[ViewsEntries].GetView().Clear()
+	_ = allViews[ViewsPieces].GetView().SetCursor(0, 0)
+	allViews[ViewsPieces].GetView().Clear()
 	_ = allViews[ViewsSources].Focus()
 	return nil
 }
@@ -203,7 +193,7 @@ func viewReleasesClose(_ *cui.Gui, _ *cui.View) error {
 	currentEntryId = -1
 	_ = allViews[ViewsReleases].GetView().SetCursor(0, 0)
 	allViews[ViewsReleases].GetView().Clear()
-	_ = allViews[ViewsEntries].Focus()
+	_ = allViews[ViewsPieces].Focus()
 	return nil
 }
 
@@ -235,7 +225,7 @@ func getViewDimensions(gui *cui.Gui, viewName string) listCui.ViewDimensions {
 	switch viewName {
 	case ViewsSources:
 		return listCui.NewViewDimensions(0, 0, columnWidth-1, columnHeight-1)
-	case ViewsEntries:
+	case ViewsPieces:
 		return listCui.NewViewDimensions(0, columnWidth, viewWidth-1, viewHeight-1)
 	case ViewsReleases:
 		return listCui.NewViewDimensions(columnHeight, 0, columnWidth-1, viewHeight-1)

@@ -1,11 +1,19 @@
 package publishing
 
-import "sort"
+import (
+	"sort"
+	"strconv"
+)
 
 type Piece struct {
 	Title      string
 	Releases   []*Release
 	Publishing *Publishing
+}
+
+func (e Piece) ToString() string {
+	line := e.Title + " | " + strconv.Itoa(len(e.Releases)) + " Releases"
+	return line
 }
 
 type ByPieceTitle []*Piece
