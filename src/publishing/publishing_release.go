@@ -1,11 +1,27 @@
 package publishing
 
+import (
+	"strconv"
+)
+
 type Release struct {
 	Size           int
 	Url            string
 	Subtitle       string
 	InternalResult string
 	Piece          *Piece
+}
+
+func (r Release) ToString() string {
+	line := strconv.Itoa(r.Size) + " MB | " + r.Piece.Title + r.Subtitle + " | "
+
+	if r.InternalResult == "" {
+		line += r.Piece.Publishing.Name
+	} else {
+		line += r.InternalResult
+	}
+
+	return line
 }
 
 type ByReleaseSize []*Release

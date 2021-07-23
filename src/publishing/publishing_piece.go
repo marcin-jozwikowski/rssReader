@@ -1,6 +1,7 @@
 package publishing
 
 import (
+	"rssReader/src/cui"
 	"sort"
 	"strconv"
 )
@@ -14,6 +15,14 @@ type Piece struct {
 func (e Piece) ToString() string {
 	line := e.Title + " | " + strconv.Itoa(len(e.Releases)) + " Releases"
 	return line
+}
+
+func (e Piece) GetListViewItems() *[]cui.ListViewItem {
+	var r []cui.ListViewItem
+	for _, c := range e.Releases {
+		r = append(r, c)
+	}
+	return &r
 }
 
 type ByPieceTitle []*Piece

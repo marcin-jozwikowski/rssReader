@@ -1,12 +1,10 @@
 package application
 
 import (
-	"fmt"
 	cui "github.com/jroimartin/gocui"
 	"log"
 	listCui "rssReader/src/cui"
 	"rssReader/src/publishing"
-	"strconv"
 )
 
 const ViewsSources = "viewSources"
@@ -46,7 +44,6 @@ func createCUI() bool {
 	v = new(listCui.ListView)
 	v.Init(gui, ViewsReleases, &[]listCui.ListViewItem{}, "Select a piece to view its releases", getViewDimensions(gui, ViewsReleases))
 	allViews[ViewsReleases] = v
-	v.DrawItems = viewReleasesDrawItems
 
 	_ = allViews[ViewsSources].Focus()
 
@@ -60,25 +57,6 @@ func createCUI() bool {
 	}
 
 	return true
-}
-
-func viewReleasesDrawItems() {
-	if currentEntryId == -1 || currentSourceId == -1 || runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().GetPieceByAt(currentEntryId) == nil {
-		return
-	}
-
-	for _, release := range runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().GetPieceByAt(currentEntryId).Releases {
-		line := strconv.Itoa(release.Size) + " MB | " +
-			release.Piece.Title + release.Subtitle + " | "
-
-		if release.InternalResult == "" {
-			line += release.Piece.Publishing.Name
-		} else {
-			line += release.InternalResult
-		}
-
-		_, _ = fmt.Fprintln(allViews[ViewsReleases].GetView(), line)
-	}
 }
 
 func viewSourcesSelectEntry(_ *cui.Gui, view *cui.View) error {
@@ -107,7 +85,7 @@ func viewEntriesSelectEntry(_ *cui.Gui, view *cui.View) error {
 	selectedEntry += offset
 	currentEntryId = selectedEntry
 	allViews[ViewsReleases].GetView().Clear()
-	allViews[ViewsReleases].Draw()
+	allViews[ViewsReleases].SetItems(runtimeConfig.GetSourceAt(currentSourceId).GetResultingPublishing().GetPieceByAt(currentEntryId).GetListViewItems())
 	_ = allViews[ViewsReleases].Focus()
 	return nil
 }
