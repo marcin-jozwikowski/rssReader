@@ -68,12 +68,3 @@ func (listView *ListView) Update() {
 		return nil
 	})
 }
-
-func (view *CliView) Focus() error {
-	view.view.Highlight = true
-	if _, err := view.gui.SetCurrentView(view.view.Name()); err != nil {
-		panic(err)
-		return nil
-	}
-	return nil
-}

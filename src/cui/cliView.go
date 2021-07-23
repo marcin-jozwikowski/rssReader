@@ -11,18 +11,11 @@ func (view *CliView) GetView() *cui.View {
 	return view.view
 }
 
-type ViewDimensions struct {
-	top    int
-	left   int
-	right  int
-	bottom int
-}
-
-func NewViewDimensions(top int, left int, right int, bottom int) ViewDimensions {
-	return ViewDimensions{
-		top:    top,
-		left:   left,
-		right:  right,
-		bottom: bottom,
+func (view *CliView) Focus() error {
+	view.view.Highlight = true
+	if _, err := view.gui.SetCurrentView(view.view.Name()); err != nil {
+		panic(err)
+		return nil
 	}
+	return nil
 }
