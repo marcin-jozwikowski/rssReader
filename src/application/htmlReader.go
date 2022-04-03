@@ -3,10 +3,17 @@ package application
 import (
 	"io/ioutil"
 	"net/http"
+	"crypto/tls"
 )
 
 func GetHtmlContent(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	transport := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+
+    client := &http.Client{Transport: transport}
+
+	resp, err := client.Get(url)
 	// handle the error if there is one
 	if err != nil {
 		return nil, err
