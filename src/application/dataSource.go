@@ -17,6 +17,7 @@ type DataSource struct {
 	InternalBaseUrl string
 	publishing      *publishing.Publishing
 	isRunning       bool
+	Archived        int
 }
 
 func (s DataSource) ToString() string {
