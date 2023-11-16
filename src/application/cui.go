@@ -18,6 +18,7 @@ var currentSourceId = -1
 var currentEntryId = -1
 
 func RunCUI(config *RuntimeConfig) {
+	config.FilterOutArchivedSources()
 	runtimeConfig = config
 	createCUI()
 }

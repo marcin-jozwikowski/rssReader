@@ -61,6 +61,17 @@ func (configuration *RuntimeConfig) WriteToFile(filename string) error {
 	}
 }
 
+func (configuration *RuntimeConfig) FilterOutArchivedSources() {
+	var result []*DataSource
+	for _, source := range configuration.Sources {
+		if source.Archived != 1 {
+			result = append(result, source)
+		}
+	}
+
+	configuration.Sources = result
+}
+
 func (configuration *RuntimeConfig) GetSources() []*DataSource {
 	return configuration.Sources
 }
