@@ -7,7 +7,12 @@ import (
 )
 
 func main() {
-	config, configErr := application.ReadRuntimeConfigFromFile(*cli.ConfigFileName)
+	filename := *cli.ConfigFileName
+	if *cli.OneTimeUrl != "" {
+		filename = cli.GetConfigFileLocation("one-time.json")
+	}
+
+	config, configErr := application.ReadRuntimeConfigFromFile(filename)
 	if configErr != nil {
 		if cli.IsVerbose() {
 			fmt.Println(configErr.Error())
@@ -15,10 +20,16 @@ func main() {
 		*cli.RunEditor = true // enforce config editor
 	}
 
+	if *cli.OneTimeUrl != "" {
+		for _, source := range config.GetSources() {
+			source.Url = *cli.OneTimeUrl
+		}
+	}
+
 	if *cli.RunEditor {
-		//if config.Edit() {
+		// if config.Edit() {
 		//	_ = config.WriteToFile(*cli.ConfigFileName)
-		//}
+		// }
 		return
 	}
 

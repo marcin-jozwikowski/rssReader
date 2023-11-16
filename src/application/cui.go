@@ -1,10 +1,11 @@
 package application
 
 import (
-	cui "github.com/jroimartin/gocui"
 	"log"
 	listCui "rssReader/src/cui"
 	"rssReader/src/publishing"
+
+	cui "github.com/jroimartin/gocui"
 )
 
 const ViewsSources = "viewSources"

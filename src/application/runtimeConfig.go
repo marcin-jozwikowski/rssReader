@@ -15,9 +15,7 @@ type RuntimeConfig struct {
 func (configuration RuntimeConfig) GetListViewItems() *[]cui.ListViewItem {
 	var r []cui.ListViewItem
 	for _, c := range configuration.Sources {
-		if c.Archived != 1 {
-			r = append(r, c)
-		}
+		r = append(r, c)
 	}
 	return &r
 }

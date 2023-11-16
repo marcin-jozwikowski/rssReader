@@ -2,10 +2,11 @@ package application
 
 import (
 	"bytes"
-	"github.com/PuerkitoBio/goquery"
 	"regexp"
 	"rssReader/src/publishing"
 	"strconv"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 func RunForDataSource(data *DataSource) *publishing.Publishing {

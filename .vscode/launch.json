@@ -11,6 +11,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "reader.go"
+            // ,"args": ["-url", "https://some.url"]
         }
     ]
 }
